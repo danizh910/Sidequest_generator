@@ -7,19 +7,18 @@ const STORAGE_KEYS = {
   settings: "settings",
 };
 
-const DEFAULT_SETTINGS = {
+const defaultSettings = {
   exclude_done_from_random: true,
   show_done_as_grey: true,
 };
 
-const CATEGORY_OPTIONS = ["outdoor", "creativity", "money_business", "fitness"];
-const DURATION_BUCKETS = {
+const durationBuckets = {
   any: null,
   "5-10": [5, 10],
   "10-20": [10, 20],
   "20-45": [20, 45],
   "45-90": [45, 90],
-  "90+": [90, Number.POSITIVE_INFINITY],
+  "90+": [90, Infinity],
 };
 
 const state = {
@@ -27,14 +26,14 @@ const state = {
   activeTab: "roulette",
   editingQuestId: null,
   rouletteSelectionId: null,
-  rouletteTicker: "",
   rouletteSpinning: false,
-  filters: defaultFilters(),
-  allSearch: "",
+  rouletteTicker: "",
+  filters: defaultFilters(true),
+  allQuestsSearch: "",
   historyStatus: "all",
 };
 
-function defaultFilters() {
+function defaultFilters(includeDoneDefault = true) {
   return {
     categories: [],
     duration_bucket: "any",
@@ -42,15 +41,11 @@ function defaultFilters() {
     group_mode: "any",
     adventure_level_min: 1,
     tags: [],
-    include_done: true,
+    include_done: includeDoneDefault,
   };
 }
 
-function nowIso() {
-  return new Date().toISOString();
-}
-
-function loadJson(key, fallback) {
+function loadJSON(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
@@ -59,75 +54,75 @@ function loadJson(key, fallback) {
   }
 }
 
-function saveJson(key, value) {
+function saveJSON(key, value) {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function nowIso() {
+  return new Date().toISOString();
 }
 
 function getStore() {
   return {
-    custom: loadJson(STORAGE_KEYS.custom, []),
-    edits: loadJson(STORAGE_KEYS.edits, {}),
-    deleted: loadJson(STORAGE_KEYS.deleted, []),
-    history: loadJson(STORAGE_KEYS.history, []),
-    saved: loadJson(STORAGE_KEYS.saved, []),
-    settings: { ...DEFAULT_SETTINGS, ...loadJson(STORAGE_KEYS.settings, {}) },
+    custom: loadJSON(STORAGE_KEYS.custom, []),
+    edits: loadJSON(STORAGE_KEYS.edits, {}),
+    deleted: loadJSON(STORAGE_KEYS.deleted, []),
+    history: loadJSON(STORAGE_KEYS.history, []),
+    saved: loadJSON(STORAGE_KEYS.saved, []),
+    settings: { ...defaultSettings, ...loadJSON(STORAGE_KEYS.settings, {}) },
   };
 }
 
-function patchStore(patch) {
-  Object.entries(patch).forEach(([slice, data]) => {
-    const key = STORAGE_KEYS[slice];
-    if (key) saveJson(key, data);
-  });
+function setStorePatch(patch) {
+  Object.entries(patch).forEach(([k, v]) => saveJSON(STORAGE_KEYS[k], v));
+}
+
+function questDoneIds(history) {
+  return new Set(history.filter((h) => h.status === "done").map((h) => h.quest_id));
 }
 
 function mergeQuests(baseQuests, store) {
-  const deleted = new Set(store.deleted);
   const all = [...baseQuests, ...store.custom];
+  const deleted = new Set(store.deleted);
   return all
     .filter((q) => !deleted.has(q.id))
     .map((q) => {
-      const edit = store.edits[q.id] || {};
-      return Object.keys(edit).length ? { ...q, ...edit } : q;
+      const patch = store.edits[q.id] || {};
+      const merged = { ...q, ...patch };
+      if (Object.keys(patch).length > 0) merged.updated_at = nowIso();
+      return merged;
     });
 }
 
-function doneQuestIds(history) {
-  return new Set(history.filter((item) => item.status === "done").map((item) => item.quest_id));
+function overlapsBucket(q, bucket) {
+  if (!durationBuckets[bucket]) return true;
+  const [min, max] = durationBuckets[bucket];
+  return q.duration_min <= max && q.duration_max >= min;
 }
 
-function overlapsDuration(quest, bucketKey) {
-  const range = DURATION_BUCKETS[bucketKey];
-  if (!range) return true;
-  const [min, max] = range;
-  return quest.duration_min <= max && quest.duration_max >= min;
+function applyFilters(quests, filters, doneSet) {
+  return quests.filter((q) => {
+    if (filters.categories.length && !filters.categories.includes(q.category)) return false;
+    if (!overlapsBucket(q, filters.duration_bucket)) return false;
+    if (filters.setting !== "any" && q.setting !== "both" && q.setting !== filters.setting) return false;
+    if (filters.group_mode !== "any" && q.group_mode !== "both" && q.group_mode !== filters.group_mode) return false;
+    if (q.adventure_level < filters.adventure_level_min) return false;
+    if (filters.tags.length && !filters.tags.every((tag) => q.tags.includes(tag))) return false;
+    if (!filters.include_done && doneSet.has(q.id)) return false;
+    return true;
+  });
 }
 
-function questMatchesFilters(quest, filters, doneSet) {
-  if (filters.categories.length && !filters.categories.includes(quest.category)) return false;
-  if (!overlapsDuration(quest, filters.duration_bucket)) return false;
-  if (filters.setting !== "any" && quest.setting !== "both" && quest.setting !== filters.setting) return false;
-  if (filters.group_mode !== "any" && quest.group_mode !== "both" && quest.group_mode !== filters.group_mode) return false;
-  if (quest.adventure_level < filters.adventure_level_min) return false;
-  if (filters.tags.length && !filters.tags.every((tag) => quest.tags.includes(tag))) return false;
-  if (!filters.include_done && doneSet.has(quest.id)) return false;
-  return true;
-}
-
-function filterQuests(quests, filters, doneSet) {
-  return quests.filter((q) => questMatchesFilters(q, filters, doneSet));
-}
-
-function sortByDoneThenTitle(quests, doneSet) {
-  return [...quests].sort((a, b) => {
+function sortedSuggestions(filtered, doneSet) {
+  return [...filtered].sort((a, b) => {
     const doneDiff = Number(doneSet.has(a.id)) - Number(doneSet.has(b.id));
     if (doneDiff !== 0) return doneDiff;
     return a.title.localeCompare(b.title, "de");
   });
 }
 
-function uniqTags(quests) {
-  return [...new Set(quests.flatMap((q) => q.tags))].sort((a, b) => a.localeCompare(b, "de"));
+function randomFrom(array) {
+  return array[Math.floor(Math.random() * array.length)];
 }
 
 function esc(str = "") {
@@ -138,483 +133,439 @@ function esc(str = "") {
     .replaceAll('"', "&quot;");
 }
 
-function pickRandom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
+function uniqueTags(quests) {
+  return [...new Set(quests.flatMap((q) => q.tags))].sort((a, b) => a.localeCompare(b, "de"));
 }
 
-function parseCommaList(value) {
-  return String(value)
-    .split(",")
-    .map((x) => x.trim())
-    .filter(Boolean);
+function badge(text, type = "") {
+  return `<span class="badge ${type}">${esc(text)}</span>`;
 }
 
-function getCtx() {
-  const store = getStore();
-  const mergedQuests = mergeQuests(state.baseQuests, store);
-  const doneSet = doneQuestIds(store.history);
-  const filteredQuests = filterQuests(mergedQuests, state.filters, doneSet);
-  const randomPool = filteredQuests.filter(
-    (q) => !store.settings.exclude_done_from_random || !doneSet.has(q.id)
-  );
-  return {
-    store,
-    mergedQuests,
-    doneSet,
-    filteredQuests,
-    randomPool,
-    tags: uniqTags(mergedQuests),
+function layout(content) {
+  const tabs = ["roulette", "all", "create", "history", "saved", "settings"];
+  const labels = {
+    roulette: "Roulette",
+    all: "All Quests",
+    create: "Create",
+    history: "History",
+    saved: "Saved",
+    settings: "Settings",
   };
-}
-
-function badge(text, className = "") {
-  return `<span class="badge ${className}">${esc(text)}</span>`;
-}
-
-function buildNav() {
-  const tabs = [
-    ["roulette", "🎯", "Roulette"],
-    ["all", "📚", "All Quests"],
-    ["create", "➕", "Create"],
-    ["history", "🕒", "History"],
-    ["saved", "⭐", "Saved"],
-    ["settings", "⚙️", "Settings"],
-  ];
-
   return `
-    <header class="topbar">
-      <div>
-        <h1>Sidequest Roulette</h1>
-        <p class="subtitle">Mobile-first • lokal gespeichert • ohne Backend</p>
-      </div>
+    <header>
+      <h1>Sidequest Roulette</h1>
+      <nav>
+        ${tabs
+          .map(
+            (t) =>
+              `<button data-tab="${t}" class="tab ${state.activeTab === t ? "active" : ""}">${labels[t]}</button>`
+          )
+          .join("")}
+      </nav>
     </header>
-    <nav class="tabbar">
-      ${tabs
-        .map(
-          ([id, icon, label]) =>
-            `<button class="tab ${state.activeTab === id ? "active" : ""}" data-tab="${id}"><span>${icon}</span><small>${label}</small></button>`
-        )
-        .join("")}
-    </nav>
+    <main>${content}</main>
   `;
 }
 
-function filterPanel(ctx) {
-  const suggestions = sortByDoneThenTitle(ctx.filteredQuests, ctx.doneSet).slice(0, 10);
-
+function filterPanel(allTags, mergedQuests, doneSet) {
+  const filtered = applyFilters(mergedQuests, state.filters, doneSet);
+  const suggestions = sortedSuggestions(filtered, doneSet).slice(0, 10);
   return `
-    <section class="card">
-      <div class="section-title-row">
-        <h2>Filter</h2>
-        <span class="counter">${ctx.filteredQuests.length} Matches</span>
-      </div>
-      <div class="filter-grid">
-        <label>Kategorien
+    <section class="panel">
+      <h3>Filter</h3>
+      <div class="grid">
+        <label>Categories
           <select multiple data-filter="categories">
-            ${CATEGORY_OPTIONS.map((c) => `<option value="${c}" ${state.filters.categories.includes(c) ? "selected" : ""}>${c}</option>`).join("")}
+            ${["outdoor", "creativity", "money_business", "fitness"]
+              .map((c) => `<option ${state.filters.categories.includes(c) ? "selected" : ""} value="${c}">${c}</option>`)
+              .join("")}
           </select>
         </label>
-        <label>Dauer
+        <label>Duration
           <select data-filter="duration_bucket">
-            ${Object.keys(DURATION_BUCKETS).map((b) => `<option value="${b}" ${state.filters.duration_bucket === b ? "selected" : ""}>${b}</option>`).join("")}
+            ${Object.keys(durationBuckets)
+              .map((d) => `<option ${state.filters.duration_bucket === d ? "selected" : ""} value="${d}">${d}</option>`)
+              .join("")}
           </select>
         </label>
         <label>Setting
           <select data-filter="setting">
-            ${["any", "indoor", "outdoor"].map((value) => `<option value="${value}" ${state.filters.setting === value ? "selected" : ""}>${value}</option>`).join("")}
+            ${["any", "indoor", "outdoor"].map((s) => `<option ${state.filters.setting === s ? "selected" : ""}>${s}</option>`).join("")}
           </select>
         </label>
         <label>Group
           <select data-filter="group_mode">
-            ${["any", "solo", "group"].map((value) => `<option value="${value}" ${state.filters.group_mode === value ? "selected" : ""}>${value}</option>`).join("")}
+            ${["any", "solo", "group"].map((s) => `<option ${state.filters.group_mode === s ? "selected" : ""}>${s}</option>`).join("")}
           </select>
         </label>
-        <label>Adventure min
-          <input type="number" min="1" max="5" value="${state.filters.adventure_level_min}" data-filter="adventure_level_min" />
+        <label>Adventure >=
+          <input data-filter="adventure_level_min" type="number" min="1" max="5" value="${state.filters.adventure_level_min}" />
         </label>
         <label>Tags
           <select multiple data-filter="tags">
-            ${ctx.tags.map((tag) => `<option value="${esc(tag)}" ${state.filters.tags.includes(tag) ? "selected" : ""}>${esc(tag)}</option>`).join("")}
+            ${allTags.map((tag) => `<option ${state.filters.tags.includes(tag) ? "selected" : ""}>${esc(tag)}</option>`).join("")}
           </select>
         </label>
+        <label class="inline">Include done
+          <input data-filter="include_done" type="checkbox" ${state.filters.include_done ? "checked" : ""} />
+        </label>
       </div>
-      <label class="inline-toggle">
-        <input type="checkbox" data-filter="include_done" ${state.filters.include_done ? "checked" : ""} />
-        Done in Listen anzeigen
-      </label>
-      <ul class="suggestion-list">
-        ${
-          suggestions.length
-            ? suggestions.map((q) => `<li>${esc(q.title)} ${badge(q.category)} ${ctx.doneSet.has(q.id) ? badge("done", "done") : ""}</li>`).join("")
-            : "<li>Keine Vorschlaege mit den aktuellen Filtern.</li>"
-        }
+      <p><strong>Matches:</strong> ${filtered.length}</p>
+      <ul class="suggestions">
+        ${suggestions
+          .map(
+            (q) => `<li>${esc(q.title)} ${doneSet.has(q.id) ? badge("done", "done") : ""} ${badge(q.category)}</li>`
+          )
+          .join("")}
       </ul>
-    </section>
-  `;
+    </section>`;
 }
 
-function questCard(quest, ctx, showActions = false) {
-  const dimDone = ctx.store.settings.show_done_as_grey && ctx.doneSet.has(quest.id);
-
+function questCard(q, doneSet) {
+  if (!q) return `<p>Keine Quest ausgewaehlt.</p>`;
   return `
-    <article class="card quest ${dimDone ? "is-done" : ""}">
-      <div class="section-title-row">
-        <h3>${esc(quest.title)}</h3>
-        <div>${badge(quest.source)} ${ctx.doneSet.has(quest.id) ? badge("done", "done") : ""}</div>
+    <article class="quest-card ${doneSet.has(q.id) ? "done-row" : ""}">
+      <h3>${esc(q.title)}</h3>
+      <p>${esc(q.description || "")}</p>
+      <p>${badge(q.category)} ${badge(`${q.duration_min}-${q.duration_max} min`)} ${badge(q.setting)} ${badge(q.group_mode)}</p>
+      <p>Tags: ${q.tags.map((t) => badge(t)).join(" ")}</p>
+      <ol>${q.instructions.map((i) => `<li>${esc(i)}</li>`).join("")}</ol>
+      <div class="actions">
+        <button data-action="done" data-id="${q.id}">Done</button>
+        <button data-action="skip" data-id="${q.id}">Skip</button>
+        <button data-action="save" data-id="${q.id}">Save</button>
+        <button data-action="spin">Next Spin</button>
       </div>
-      <p class="muted">${esc(quest.description || "Keine Beschreibung")}</p>
-      <p>${badge(quest.category)} ${badge(`${quest.duration_min}-${quest.duration_max} min`)} ${badge(quest.setting)} ${badge(quest.group_mode)}</p>
-      <p><strong>Tags:</strong> ${quest.tags.map((t) => badge(t)).join(" ")}</p>
-      <ol>${quest.instructions.map((s) => `<li>${esc(s)}</li>`).join("")}</ol>
-      ${
-        showActions
-          ? `<div class="actions">
-               <button data-action="done" data-id="${quest.id}">Done</button>
-               <button data-action="skip" data-id="${quest.id}">Skip</button>
-               <button data-action="save" data-id="${quest.id}">Save</button>
-               <button data-action="spin">Next Spin</button>
-             </div>`
-          : `<div class="actions">
-               <button data-action="edit" data-id="${quest.id}">Edit</button>
-               <button data-action="delete" data-id="${quest.id}">Delete</button>
-             </div>`
-      }
     </article>
   `;
 }
 
 function rouletteView(ctx) {
+  const randomPool = ctx.filteredQuests.filter((q) => !ctx.store.settings.exclude_done_from_random || !ctx.doneSet.has(q.id));
   const selected = ctx.mergedQuests.find((q) => q.id === state.rouletteSelectionId);
-  return `
-    ${filterPanel(ctx)}
-    <section class="card hero">
+  return layout(`
+    ${filterPanel(ctx.tags, ctx.mergedQuests, ctx.doneSet)}
+    <section class="panel">
       <h2>Roulette</h2>
-      <p class="muted">Pool: <strong>${ctx.randomPool.length}</strong> passende Quests</p>
-      <button class="primary" data-action="spin" ${state.rouletteSpinning ? "disabled" : ""}>Spin</button>
-      <p class="ticker">${esc(state.rouletteTicker)}</p>
+      <button data-action="spin" ${state.rouletteSpinning ? "disabled" : ""}>Spin</button>
+      <p class="ticker">${esc(state.rouletteTicker || "")}</p>
       ${
-        ctx.randomPool.length === 0
-          ? `<p class="empty">Keine Quest verfuegbar. Filter lockern oder Done im Random einschliessen.</p>`
-          : selected
-            ? questCard(selected, ctx, true)
-            : `<p>Tippe auf <strong>Spin</strong>, um deine naechste Sidequest zu bekommen.</p>`
+        randomPool.length
+          ? `<p>Random Pool: ${randomPool.length}</p>${questCard(selected, ctx.doneSet)}`
+          : `<p class="empty">Pool leer. Filter lockern oder Done einschliessen.</p>`
       }
     </section>
-  `;
+  `);
+}
+
+function questRow(q, doneSet) {
+  return `<tr class="${doneSet.has(q.id) ? "done-row" : ""}">
+    <td>${esc(q.title)}</td>
+    <td>${esc(q.category)}</td>
+    <td>${esc(q.tags.join(", "))}</td>
+    <td>${q.duration_min}-${q.duration_max}</td>
+    <td>${doneSet.has(q.id) ? "done" : "open"}</td>
+    <td>${q.source}</td>
+    <td>
+      <button data-action="edit" data-id="${q.id}">Edit</button>
+      <button data-action="delete" data-id="${q.id}">Delete</button>
+    </td>
+  </tr>`;
 }
 
 function allQuestsView(ctx) {
-  const search = state.allSearch.trim().toLowerCase();
-  const list = sortByDoneThenTitle(ctx.filteredQuests, ctx.doneSet).filter(
+  const search = state.allQuestsSearch.toLowerCase();
+  const results = sortedSuggestions(ctx.filteredQuests, ctx.doneSet).filter(
     (q) => !search || q.title.toLowerCase().includes(search) || q.tags.join(" ").toLowerCase().includes(search)
   );
-
-  return `
-    ${filterPanel(ctx)}
-    <section class="card">
-      <div class="section-title-row">
-        <h2>All Quests</h2>
-        <span class="counter">${list.length} Ergebnisse</span>
-      </div>
-      <input data-action="search" placeholder="Suche in Titel / Tags" value="${esc(state.allSearch)}" />
-      <div class="stack">${list.map((q) => questCard(q, ctx, false)).join("") || '<p class="muted">Keine Quests gefunden.</p>'}</div>
+  return layout(`
+    ${filterPanel(ctx.tags, ctx.mergedQuests, ctx.doneSet)}
+    <section class="panel">
+      <h2>All Quests</h2>
+      <input data-action="search-all" placeholder="Search title/tags" value="${esc(state.allQuestsSearch)}" />
+      <table>
+        <thead><tr><th>Title</th><th>Category</th><th>Tags</th><th>Duration</th><th>Status</th><th>Source</th><th>Actions</th></tr></thead>
+        <tbody>${results.map((q) => questRow(q, ctx.doneSet)).join("")}</tbody>
+      </table>
     </section>
-  `;
+  `);
 }
 
 function questFormView(ctx, quest) {
-  const title = quest ? "Quest bearbeiten" : "Neue Quest erstellen";
-  return `
-    <section class="card">
-      <h2>${title}</h2>
-      <form id="quest-form" class="form-grid">
+  const isEdit = Boolean(quest);
+  return layout(`
+    <section class="panel">
+      <h2>${isEdit ? "Edit Quest" : "Create Quest"}</h2>
+      <form id="quest-form">
         <input type="hidden" name="id" value="${esc(quest?.id || "")}" />
-        <label>Title
-          <input name="title" required minlength="3" maxlength="80" value="${esc(quest?.title || "")}" />
-        </label>
-        <label>Beschreibung
-          <textarea name="description">${esc(quest?.description || "")}</textarea>
-        </label>
+        <label>Title <input required minlength="3" maxlength="80" name="title" value="${esc(quest?.title || "")}" /></label>
+        <label>Description <textarea name="description">${esc(quest?.description || "")}</textarea></label>
         <label>Category
-          <select name="category">${CATEGORY_OPTIONS.map((c) => `<option value="${c}" ${quest?.category === c ? "selected" : ""}>${c}</option>`).join("")}</select>
+          <select name="category">${["outdoor", "creativity", "money_business", "fitness"].map((c) => `<option ${quest?.category === c ? "selected" : ""}>${c}</option>`).join("")}</select>
         </label>
-        <label>Tags (comma)
-          <input name="tags" value="${esc((quest?.tags || []).join(", "))}" />
-        </label>
-        <div class="split">
-          <label>Duration min <input type="number" min="1" name="duration_min" value="${quest?.duration_min || 10}" /></label>
-          <label>Duration max <input type="number" min="1" name="duration_max" value="${quest?.duration_max || 20}" /></label>
-        </div>
-        <div class="split">
-          <label>Setting
-            <select name="setting">${["indoor", "outdoor", "both"].map((x) => `<option value="${x}" ${quest?.setting === x ? "selected" : ""}>${x}</option>`).join("")}</select>
-          </label>
-          <label>Group
-            <select name="group_mode">${["solo", "group", "both"].map((x) => `<option value="${x}" ${quest?.group_mode === x ? "selected" : ""}>${x}</option>`).join("")}</select>
-          </label>
-        </div>
-        <label>Adventure Level
-          <input type="number" min="1" max="5" name="adventure_level" value="${quest?.adventure_level || 2}" />
-        </label>
-        <label>Equipment (comma)
-          <input name="equipment" value="${esc((quest?.equipment || []).join(", "))}" />
-        </label>
-        <div class="split">
-          <label>Budget max CHF
-            <input type="number" min="0" name="budget_max_chf" value="${quest?.constraints?.budget_max_chf ?? ""}" />
-          </label>
-          <label>Weather
-            <select name="weather_required">${["none", "dry", "any"].map((x) => `<option value="${x}" ${quest?.constraints?.weather_required === x ? "selected" : ""}>${x}</option>`).join("")}</select>
-          </label>
-        </div>
-        <label class="inline-toggle"><input type="checkbox" name="quiet_ok" ${quest?.constraints?.quiet_ok ? "checked" : ""} /> Quiet ok</label>
-        <label>Instructions (eine Zeile = ein Schritt)
-          <textarea name="instructions">${esc((quest?.instructions || [""]).join("\n"))}</textarea>
-        </label>
-        <button class="primary" type="submit">Speichern</button>
+        <label>Tags (comma) <input name="tags" value="${esc((quest?.tags || []).join(","))}" /></label>
+        <label>Duration min <input type="number" name="duration_min" min="1" value="${quest?.duration_min || 10}" /></label>
+        <label>Duration max <input type="number" name="duration_max" min="1" value="${quest?.duration_max || 20}" /></label>
+        <label>Setting <select name="setting">${["indoor", "outdoor", "both"].map((c) => `<option ${quest?.setting === c ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+        <label>Group mode <select name="group_mode">${["solo", "group", "both"].map((c) => `<option ${quest?.group_mode === c ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+        <label>Adventure level <input type="number" min="1" max="5" name="adventure_level" value="${quest?.adventure_level || 1}" /></label>
+        <label>Equipment (comma) <input name="equipment" value="${esc((quest?.equipment || []).join(","))}" /></label>
+        <label>Budget max CHF <input type="number" step="1" min="0" name="budget_max_chf" value="${quest?.constraints?.budget_max_chf ?? ""}" /></label>
+        <label>Quiet OK <input type="checkbox" name="quiet_ok" ${quest?.constraints?.quiet_ok ? "checked" : ""} /></label>
+        <label>Weather required <select name="weather_required">${["none", "dry", "any"].map((c) => `<option ${quest?.constraints?.weather_required === c ? "selected" : ""}>${c}</option>`).join("")}</select></label>
+        <label>Instructions (one per line)<textarea name="instructions">${esc((quest?.instructions || [""]).join("\n"))}</textarea></label>
+        <button type="submit">Save Quest</button>
       </form>
     </section>
-  `;
+  `);
 }
 
 function historyView(ctx) {
   const rows = [...ctx.store.history]
-    .filter((entry) => state.historyStatus === "all" || entry.status === state.historyStatus)
+    .filter((h) => state.historyStatus === "all" || h.status === state.historyStatus)
     .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-    .map((entry) => {
-      const quest = ctx.mergedQuests.find((q) => q.id === entry.quest_id);
-      return `<li><strong>${esc(quest?.title || entry.quest_id)}</strong> · ${entry.status} · ${new Date(entry.timestamp).toLocaleString()}</li>`;
-    });
-
-  return `
-    <section class="card">
+    .map((h) => {
+      const q = ctx.mergedQuests.find((x) => x.id === h.quest_id);
+      return `<tr><td>${esc(q?.title || h.quest_id)}</td><td>${h.status}</td><td>${new Date(h.timestamp).toLocaleString()}</td></tr>`;
+    })
+    .join("");
+  return layout(`
+    <section class="panel">
       <h2>History</h2>
       <select data-action="history-filter">
-        ${["all", "done", "skipped"].map((s) => `<option value="${s}" ${state.historyStatus === s ? "selected" : ""}>${s}</option>`).join("")}
+        ${["all", "done", "skipped"].map((s) => `<option ${state.historyStatus === s ? "selected" : ""}>${s}</option>`).join("")}
       </select>
-      <ul class="simple-list">${rows.join("") || "<li>Noch keine Eintraege.</li>"}</ul>
+      <table><thead><tr><th>Quest</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>
     </section>
-  `;
+  `);
 }
 
 function savedView(ctx) {
-  const rows = [...ctx.store.saved]
+  const items = [...ctx.store.saved]
     .sort((a, b) => new Date(b.saved_at) - new Date(a.saved_at))
-    .map((entry) => {
-      const quest = ctx.mergedQuests.find((q) => q.id === entry.quest_id);
-      return `<li><strong>${esc(quest?.title || entry.quest_id)}</strong> · gespeichert am ${new Date(entry.saved_at).toLocaleDateString()}</li>`;
-    });
-
-  return `<section class="card"><h2>Saved</h2><ul class="simple-list">${rows.join("") || "<li>Keine gespeicherten Quests.</li>"}</ul></section>`;
+    .map((s) => {
+      const q = ctx.mergedQuests.find((x) => x.id === s.quest_id);
+      return `<li>${esc(q?.title || s.quest_id)} (${new Date(s.saved_at).toLocaleDateString()})</li>`;
+    })
+    .join("");
+  return layout(`<section class="panel"><h2>Saved</h2><ul>${items || "<li>Keine gespeicherten Quests.</li>"}</ul></section>`);
 }
 
 function settingsView(ctx) {
-  return `
-    <section class="card">
+  return layout(`
+    <section class="panel">
       <h2>Settings</h2>
-      <label class="inline-toggle"><input type="checkbox" data-action="toggle-setting" data-key="exclude_done_from_random" ${ctx.store.settings.exclude_done_from_random ? "checked" : ""}/> Done im Random ausschliessen</label>
-      <label class="inline-toggle"><input type="checkbox" data-action="toggle-setting" data-key="show_done_as_grey" ${ctx.store.settings.show_done_as_grey ? "checked" : ""}/> Done als grau markieren</label>
-      <button data-action="reset-storage">LocalStorage resetten</button>
+      <label><input type="checkbox" data-action="toggle-setting" data-key="exclude_done_from_random" ${
+        ctx.store.settings.exclude_done_from_random ? "checked" : ""
+      } /> exclude_done_from_random</label>
+      <label><input type="checkbox" data-action="toggle-setting" data-key="show_done_as_grey" ${
+        ctx.store.settings.show_done_as_grey ? "checked" : ""
+      } /> show_done_as_grey</label>
+      <button data-action="reset-storage">Reset localStorage</button>
     </section>
-  `;
+  `);
+}
+
+function deriveContext() {
+  const store = getStore();
+  const mergedQuests = mergeQuests(state.baseQuests, store);
+  const doneSet = questDoneIds(store.history);
+  const filteredQuests = applyFilters(mergedQuests, state.filters, doneSet);
+  const tags = uniqueTags(mergedQuests);
+  return { store, mergedQuests, doneSet, filteredQuests, tags };
 }
 
 function render() {
-  const root = document.querySelector("#app");
-  const ctx = getCtx();
-  const editQuest = state.editingQuestId ? ctx.mergedQuests.find((q) => q.id === state.editingQuestId) : null;
+  const app = document.querySelector("#app");
+  const ctx = deriveContext();
+  let view = "";
+  if (state.activeTab === "roulette") view = rouletteView(ctx);
+  if (state.activeTab === "all") view = allQuestsView(ctx);
+  if (state.activeTab === "create") view = questFormView(ctx, state.editingQuestId ? ctx.mergedQuests.find((q) => q.id === state.editingQuestId) : null);
+  if (state.activeTab === "history") view = historyView(ctx);
+  if (state.activeTab === "saved") view = savedView(ctx);
+  if (state.activeTab === "settings") view = settingsView(ctx);
 
-  let page = "";
-  if (state.activeTab === "roulette") page = rouletteView(ctx);
-  if (state.activeTab === "all") page = allQuestsView(ctx);
-  if (state.activeTab === "create") page = questFormView(ctx, editQuest);
-  if (state.activeTab === "history") page = historyView(ctx);
-  if (state.activeTab === "saved") page = savedView(ctx);
-  if (state.activeTab === "settings") page = settingsView(ctx);
-
-  root.innerHTML = `${buildNav()}<main class="page">${page}</main>`;
-  bindEvents(ctx);
+  app.innerHTML = view;
+  attachEvents(ctx);
 }
 
-function collectSelected(select) {
-  return [...select.selectedOptions].map((o) => o.value);
+function collectSelectValues(selectEl) {
+  return [...selectEl.selectedOptions].map((o) => o.value);
 }
 
-function bindEvents(ctx) {
-  document.querySelectorAll("[data-tab]").forEach((btn) => {
+function parseList(value) {
+  return value
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function upsertEdit(id, payload) {
+  const store = getStore();
+  const edits = { ...store.edits, [id]: { ...(store.edits[id] || {}), ...payload, updated_at: nowIso() } };
+  setStorePatch({ edits });
+}
+
+function attachEvents(ctx) {
+  document.querySelectorAll("[data-tab]").forEach((btn) =>
     btn.addEventListener("click", () => {
       state.activeTab = btn.dataset.tab;
       if (state.activeTab !== "create") state.editingQuestId = null;
+      if (state.activeTab === "roulette") state.filters.include_done = true;
       render();
-    });
-  });
+    })
+  );
 
-  document.querySelectorAll("[data-filter]").forEach((control) => {
-    control.addEventListener("change", () => {
-      const key = control.dataset.filter;
-      if (control.multiple) state.filters[key] = collectSelected(control);
-      else if (control.type === "checkbox") state.filters[key] = control.checked;
-      else if (control.type === "number") state.filters[key] = Number(control.value || 1);
-      else state.filters[key] = control.value;
+  document.querySelectorAll("[data-filter]").forEach((el) =>
+    el.addEventListener("change", () => {
+      const key = el.dataset.filter;
+      if (el.tagName === "SELECT" && el.multiple) state.filters[key] = collectSelectValues(el);
+      else if (el.type === "checkbox") state.filters[key] = el.checked;
+      else if (el.type === "number") state.filters[key] = Number(el.value);
+      else state.filters[key] = el.value;
       render();
-    });
-  });
+    })
+  );
 
-  const searchInput = document.querySelector("[data-action='search']");
-  if (searchInput) {
-    searchInput.addEventListener("input", () => {
-      state.allSearch = searchInput.value;
+  document.querySelectorAll("[data-action='search-all']").forEach((el) =>
+    el.addEventListener("input", () => {
+      state.allQuestsSearch = el.value;
       render();
-    });
-  }
+    })
+  );
 
-  const historyFilter = document.querySelector("[data-action='history-filter']");
-  if (historyFilter) {
-    historyFilter.addEventListener("change", () => {
-      state.historyStatus = historyFilter.value;
+  document.querySelectorAll("[data-action='history-filter']").forEach((el) =>
+    el.addEventListener("change", () => {
+      state.historyStatus = el.value;
       render();
-    });
-  }
+    })
+  );
 
-  document.querySelectorAll("[data-action='spin']").forEach((btn) => {
+  document.querySelectorAll("[data-action='spin']").forEach((btn) =>
     btn.addEventListener("click", async () => {
-      if (!ctx.randomPool.length || state.rouletteSpinning) return;
+      const pool = ctx.filteredQuests.filter((q) => !ctx.store.settings.exclude_done_from_random || !ctx.doneSet.has(q.id));
+      if (!pool.length) return;
       state.rouletteSpinning = true;
-
+      let ticks = 0;
       await new Promise((resolve) => {
-        let tick = 0;
-        const timer = setInterval(() => {
-          state.rouletteTicker = pickRandom(ctx.randomPool).title;
+        const iv = setInterval(() => {
+          state.rouletteTicker = randomFrom(pool).title;
           render();
-          tick += 1;
-          if (tick > 18) {
-            clearInterval(timer);
+          ticks += 1;
+          if (ticks > 15) {
+            clearInterval(iv);
             resolve();
           }
-        }, 80);
+        }, 90);
       });
-
-      const chosen = pickRandom(ctx.randomPool);
-      state.rouletteSelectionId = chosen.id;
-      state.rouletteTicker = "";
+      state.rouletteSelectionId = randomFrom(pool).id;
       state.rouletteSpinning = false;
+      state.rouletteTicker = "";
       render();
-    });
-  });
+    })
+  );
 
-  document.querySelectorAll("[data-action='done'], [data-action='skip']").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const status = btn.dataset.action === "skip" ? "skipped" : "done";
-      const store = getStore();
-      patchStore({
-        history: [...store.history, { quest_id: btn.dataset.id, status, timestamp: nowIso() }],
-      });
-      render();
-    });
-  });
-
-  document.querySelectorAll("[data-action='save']").forEach((btn) => {
+  document.querySelectorAll("[data-action='done'], [data-action='skip']").forEach((btn) =>
     btn.addEventListener("click", () => {
       const store = getStore();
-      const already = store.saved.some((entry) => entry.quest_id === btn.dataset.id);
-      if (already) return;
-      patchStore({
-        saved: [...store.saved, { quest_id: btn.dataset.id, saved_at: nowIso() }],
-      });
+      const history = [...store.history, { quest_id: btn.dataset.id, status: btn.dataset.action, timestamp: nowIso() }];
+      setStorePatch({ history });
       render();
-    });
-  });
+    })
+  );
 
-  document.querySelectorAll("[data-action='edit']").forEach((btn) => {
+  document.querySelectorAll("[data-action='save']").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const store = getStore();
+      const saved = [...store.saved, { quest_id: btn.dataset.id, saved_at: nowIso() }];
+      setStorePatch({ saved });
+      render();
+    })
+  );
+
+  document.querySelectorAll("[data-action='edit']").forEach((btn) =>
     btn.addEventListener("click", () => {
       state.editingQuestId = btn.dataset.id;
       state.activeTab = "create";
       render();
-    });
-  });
+    })
+  );
 
-  document.querySelectorAll("[data-action='delete']").forEach((btn) => {
+  document.querySelectorAll("[data-action='delete']").forEach((btn) =>
     btn.addEventListener("click", () => {
       const store = getStore();
       if (store.deleted.includes(btn.dataset.id)) return;
-      patchStore({ deleted: [...store.deleted, btn.dataset.id] });
+      setStorePatch({ deleted: [...store.deleted, btn.dataset.id] });
       if (state.rouletteSelectionId === btn.dataset.id) state.rouletteSelectionId = null;
       render();
-    });
-  });
+    })
+  );
 
-  document.querySelectorAll("[data-action='toggle-setting']").forEach((input) => {
-    input.addEventListener("change", () => {
+  document.querySelectorAll("[data-action='toggle-setting']").forEach((checkbox) =>
+    checkbox.addEventListener("change", () => {
       const store = getStore();
-      patchStore({ settings: { ...store.settings, [input.dataset.key]: input.checked } });
+      setStorePatch({ settings: { ...store.settings, [checkbox.dataset.key]: checkbox.checked } });
       render();
-    });
-  });
+    })
+  );
 
-  const resetBtn = document.querySelector("[data-action='reset-storage']");
-  if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
-      if (!window.confirm("Wirklich alles lokal zuruecksetzen?")) return;
+  document.querySelectorAll("[data-action='reset-storage']").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      if (!window.confirm("Wirklich localStorage resetten?")) return;
       Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
-      state.filters = defaultFilters();
-      state.editingQuestId = null;
+      state.filters = defaultFilters(true);
       state.rouletteSelectionId = null;
       render();
-    });
-  }
+    })
+  );
 
   const form = document.querySelector("#quest-form");
   if (form) {
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
       const fd = new FormData(form);
-      const id = String(fd.get("id") || `custom-${crypto.randomUUID()}`);
+      const id = fd.get("id") || `custom-${crypto.randomUUID()}`;
       const payload = {
         id,
         title: String(fd.get("title") || "").trim(),
         description: String(fd.get("description") || "").trim(),
-        category: String(fd.get("category") || "outdoor"),
-        tags: parseCommaList(fd.get("tags")),
+        category: fd.get("category"),
+        tags: parseList(String(fd.get("tags") || "")),
         duration_min: Number(fd.get("duration_min")),
         duration_max: Number(fd.get("duration_max")),
-        setting: String(fd.get("setting") || "both"),
-        group_mode: String(fd.get("group_mode") || "both"),
+        setting: fd.get("setting"),
+        group_mode: fd.get("group_mode"),
         adventure_level: Number(fd.get("adventure_level")),
-        equipment: parseCommaList(fd.get("equipment")),
+        equipment: parseList(String(fd.get("equipment") || "")),
         constraints: {
           budget_max_chf: fd.get("budget_max_chf") ? Number(fd.get("budget_max_chf")) : undefined,
           quiet_ok: fd.get("quiet_ok") === "on",
-          weather_required: String(fd.get("weather_required") || "none"),
+          weather_required: fd.get("weather_required") || "none",
         },
         instructions: String(fd.get("instructions") || "")
           .split("\n")
-          .map((x) => x.trim())
+          .map((s) => s.trim())
           .filter(Boolean),
       };
 
-      if (payload.title.length < 3 || payload.title.length > 80) return window.alert("Title muss 3 bis 80 Zeichen haben.");
-      if (payload.duration_min > payload.duration_max) return window.alert("duration_min muss <= duration_max sein.");
-      if (payload.instructions.length < 1) return window.alert("Bitte mindestens 1 Instruction angeben.");
+      if (payload.title.length < 3 || payload.title.length > 80) return alert("Title muss 3..80 Zeichen haben.");
+      if (payload.duration_min > payload.duration_max) return alert("duration_min muss <= duration_max sein.");
+      if (payload.instructions.length < 1) return alert("Mindestens eine Instruction erforderlich.");
 
       const store = getStore();
-      const baseExists = state.baseQuests.some((q) => q.id === id);
-      const customExists = store.custom.some((q) => q.id === id);
+      const existsInBase = state.baseQuests.some((q) => q.id === id);
+      const existsInCustom = store.custom.some((q) => q.id === id);
 
-      if (!baseExists && !customExists) {
-        patchStore({
-          custom: [...store.custom, { ...payload, source: "custom", created_at: nowIso() }],
-        });
+      if (!existsInBase && !existsInCustom) {
+        const newQuest = {
+          ...payload,
+          created_at: nowIso(),
+          source: "custom",
+        };
+        setStorePatch({ custom: [...store.custom, newQuest] });
       } else {
-        patchStore({
-          edits: {
-            ...store.edits,
-            [id]: {
-              ...(store.edits[id] || {}),
-              ...payload,
-              updated_at: nowIso(),
-            },
-          },
-        });
+        upsertEdit(id, payload);
       }
 
       state.activeTab = "all";
@@ -626,8 +577,8 @@ function bindEvents(ctx) {
 
 async function init() {
   try {
-    const response = await fetch("./baseQuests.json");
-    state.baseQuests = response.ok ? await response.json() : [];
+    const res = await fetch("./baseQuests.json");
+    state.baseQuests = res.ok ? await res.json() : [];
   } catch {
     state.baseQuests = [];
   }
