@@ -1,0 +1,86 @@
+[
+  {
+    "id": "base-1",
+    "title": "Sunrise Walk & Photo",
+    "description": "Mache einen 20-minuetigen Spaziergang und nimm 3 interessante Fotos auf.",
+    "category": "outdoor",
+    "tags": ["nature", "photo", "morning"],
+    "duration_min": 20,
+    "duration_max": 35,
+    "setting": "outdoor",
+    "group_mode": "both",
+    "adventure_level": 2,
+    "equipment": ["smartphone"],
+    "constraints": { "budget_max_chf": 0, "weather_required": "dry" },
+    "instructions": [
+      "Zieh bequeme Schuhe an.",
+      "Gehe in deiner Umgebung eine neue Route.",
+      "Nimm drei Fotos von Dingen, die dir auffallen."
+    ],
+    "created_at": "2026-01-01T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-2",
+    "title": "Mini-Budget-Side-Hustle-Idee",
+    "description": "Skizziere in 30 Minuten eine kleine Geschaeftsidee mit maximal 20 CHF Startbudget.",
+    "category": "money_business",
+    "tags": ["business", "brainstorm", "budget"],
+    "duration_min": 25,
+    "duration_max": 40,
+    "setting": "indoor",
+    "group_mode": "solo",
+    "adventure_level": 3,
+    "equipment": ["notebook", "pen"],
+    "constraints": { "budget_max_chf": 20, "quiet_ok": true, "weather_required": "none" },
+    "instructions": [
+      "Waehle ein kleines Problem aus dem Alltag.",
+      "Notiere Loesung, Zielgruppe und Einnahme-Idee.",
+      "Definiere den kleinsten naechsten Schritt fuer morgen."
+    ],
+    "created_at": "2026-01-02T08:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-3",
+    "title": "7-Minuten Fitness Circuit",
+    "description": "Ein kurzer, intensiver Home-Workout-Zirkel.",
+    "category": "fitness",
+    "tags": ["workout", "quick", "energy"],
+    "duration_min": 7,
+    "duration_max": 15,
+    "setting": "both",
+    "group_mode": "both",
+    "adventure_level": 2,
+    "equipment": ["mat"],
+    "constraints": { "quiet_ok": false, "weather_required": "none" },
+    "instructions": [
+      "5 Uebungen waehlen (z.B. Squats, Pushups, Plank, Lunges, Burpees).",
+      "Je 40 Sekunden Belastung + 20 Sekunden Pause.",
+      "1 Minute Cooldown nicht vergessen."
+    ],
+    "created_at": "2026-01-03T09:30:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-4",
+    "title": "Creative Remix Challenge",
+    "description": "Remixe einen bekannten Song, ein Meme oder eine Story auf deine Art.",
+    "category": "creativity",
+    "tags": ["creative", "art", "fun"],
+    "duration_min": 30,
+    "duration_max": 60,
+    "setting": "indoor",
+    "group_mode": "both",
+    "adventure_level": 4,
+    "equipment": ["paper", "smartphone"],
+    "constraints": { "quiet_ok": true, "weather_required": "none" },
+    "instructions": [
+      "Waehle ein Ausgangsmaterial.",
+      "Aendere Stil, Ton oder Medium komplett.",
+      "Zeige es einer Person oder poste es privat fuer Feedback."
+    ],
+    "created_at": "2026-01-04T12:00:00.000Z",
+    "source": "base"
+  }
+]
