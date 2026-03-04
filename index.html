@@ -1,13 +1,1202 @@
 <!doctype html>
 <html lang="de">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Sidequest Picker</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="app.js"></script>
-  </body>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Sidequest Picker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&family=DM+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #0a0a0f;
+  --surface: #111118;
+  --surface2: #1a1a24;
+  --border: #2a2a3d;
+  --border2: #3a3a52;
+  --txt: #f0eeff;
+  --muted: #7a7a99;
+  --accent: #c8ff57;
+  --accent2: #ff6b35;
+  --accent3: #7b7bff;
+  --danger: #ff4466;
+  --done: #4dffb4;
+  font-family: 'DM Sans', sans-serif;
+  color-scheme: dark;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+
+body{
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80vw 60vh at 30% -10%, rgba(123,123,255,.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60vw 40vh at 90% 100%, rgba(200,255,87,.06) 0%, transparent 55%);
+  color: var(--txt);
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* ───── GRAIN OVERLAY ───── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:999;opacity:.6;
+}
+
+#app{
+  max-width:800px;
+  margin:0 auto;
+  padding:0 1rem 4rem;
+}
+
+/* ───── HEADER ───── */
+header{
+  position:sticky;top:0;z-index:50;
+  padding:1.2rem 0 0;
+  background:linear-gradient(180deg,rgba(10,10,15,.98) 70%, transparent);
+  backdrop-filter:blur(20px);
+}
+
+.header-top{
+  display:flex;align-items:baseline;gap:.75rem;
+  margin-bottom:1.1rem;
+}
+
+.logo-mark{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(2rem,8vw,3.5rem);
+  letter-spacing:.03em;
+  line-height:1;
+  background:linear-gradient(135deg, var(--accent) 0%, #7bffce 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+
+.logo-sub{
+  font-family:'DM Mono',monospace;
+  font-size:.72rem;
+  color:var(--muted);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  padding-bottom:.2rem;
+}
+
+/* ───── NAV ───── */
+nav{
+  display:flex;gap:.4rem;
+  overflow-x:auto;
+  padding-bottom:.9rem;
+  scrollbar-width:none;
+}
+nav::-webkit-scrollbar{display:none}
+
+.tab{
+  flex-shrink:0;
+  font-family:'DM Mono',monospace;
+  font-size:.72rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  padding:.5rem 1rem;
+  border-radius:999px;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--muted);
+  cursor:pointer;
+  transition:all .18s ease;
+  white-space:nowrap;
+}
+.tab:hover{border-color:var(--border2);color:var(--txt)}
+.tab.active{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#0a0a0f;
+  font-weight:500;
+}
+
+/* ───── PANELS ───── */
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:1.4rem;
+  margin-bottom:.8rem;
+  position:relative;
+  overflow:hidden;
+}
+
+.panel::before{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(145deg, rgba(255,255,255,.025) 0%, transparent 60%);
+  pointer-events:none;
+}
+
+.panel-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.6rem;
+  letter-spacing:.05em;
+  color:var(--txt);
+  margin-bottom:1rem;
+}
+
+/* ───── FILTER PANEL ───── */
+.filter-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:.6rem;
+}
+@media(min-width:600px){.filter-grid{grid-template-columns:repeat(3,1fr)}}
+
+label{
+  display:flex;flex-direction:column;gap:.3rem;
+  font-size:.78rem;
+  font-family:'DM Mono',monospace;
+  color:var(--muted);
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+label.inline{flex-direction:row;align-items:center;justify-content:space-between}
+
+input,select,textarea{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--txt);
+  font:inherit;
+  font-family:'DM Sans',sans-serif;
+  font-size:.9rem;
+  padding:.55rem .75rem;
+  transition:border-color .15s;
+  width:100%;
+}
+input:focus,select:focus,textarea:focus{
+  outline:none;border-color:var(--accent3);
+}
+select[multiple]{min-height:90px}
+input[type=checkbox]{
+  width:1.1rem;height:1.1rem;
+  accent-color:var(--accent);
+  cursor:pointer;
+}
+
+.filter-count{
+  font-family:'DM Mono',monospace;
+  font-size:.75rem;
+  color:var(--accent);
+  margin-top:.75rem;
+  letter-spacing:.08em;
+}
+
+/* ───── BUTTONS ───── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:.45rem;
+  font-family:'DM Mono',monospace;
+  font-size:.75rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  padding:.55rem 1.2rem;
+  border-radius:999px;
+  border:1px solid var(--border2);
+  background:transparent;
+  color:var(--txt);
+  cursor:pointer;
+  transition:all .18s ease;
+  white-space:nowrap;
+}
+.btn:hover{border-color:var(--txt);background:rgba(255,255,255,.04)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn-primary{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#0a0a0f;
+  font-weight:500;
+}
+.btn-primary:hover{background:#d4ff70;border-color:#d4ff70;color:#0a0a0f}
+.btn-sm{padding:.35rem .85rem;font-size:.68rem}
+.btn-danger{border-color:var(--danger);color:var(--danger)}
+.btn-danger:hover{background:rgba(255,68,102,.1)}
+
+/* ───── SPIN BUTTON ───── */
+.spin-wrap{display:flex;justify-content:center;margin-bottom:1.5rem}
+.btn-spin{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.5rem;
+  letter-spacing:.15em;
+  padding:.7rem 2.5rem;
+  border-radius:999px;
+  border:2px solid var(--accent);
+  background:transparent;
+  color:var(--accent);
+  cursor:pointer;
+  transition:all .2s ease;
+  position:relative;
+  overflow:hidden;
+}
+.btn-spin::after{
+  content:'';
+  position:absolute;inset:0;
+  background:var(--accent);
+  opacity:0;
+  transition:opacity .2s;
+}
+.btn-spin:hover{color:#0a0a0f}
+.btn-spin:hover::after{opacity:1}
+.btn-spin span{position:relative;z-index:1}
+.btn-spin:disabled{opacity:.3;cursor:not-allowed}
+.btn-spin.spinning{
+  border-color:var(--accent3);color:var(--accent3);
+  animation:pulse-glow 1s ease-in-out infinite;
+}
+.btn-spin.spinning::after{display:none}
+
+@keyframes pulse-glow{
+  0%,100%{box-shadow:0 0 0 0 rgba(123,123,255,0)}
+  50%{box-shadow:0 0 20px 4px rgba(123,123,255,.4)}
+}
+
+/* ───── WHEEL ───── */
+.wheel-outer{
+  display:flex;flex-direction:column;align-items:center;
+  margin:0 auto 1.5rem;
+}
+
+.wheel-container{
+  position:relative;
+  width:min(75vw,320px);
+  aspect-ratio:1;
+}
+
+.wheel-pointer{
+  position:absolute;
+  top:-2px;left:50%;
+  transform:translateX(-50%);
+  width:0;height:0;
+  border-left:11px solid transparent;
+  border-right:11px solid transparent;
+  border-bottom:22px solid var(--accent);
+  z-index:3;
+  filter:drop-shadow(0 2px 8px rgba(200,255,87,.6));
+}
+
+.wheel{
+  width:100%;height:100%;
+  border-radius:50%;
+  border:4px solid rgba(255,255,255,.08);
+  box-shadow:
+    0 0 0 1px rgba(200,255,87,.15),
+    0 20px 60px rgba(0,0,0,.6),
+    inset 0 0 60px rgba(0,0,0,.3);
+  transition:transform 4.2s cubic-bezier(.08,.9,.06,1);
+  position:relative;overflow:hidden;
+}
+
+.wheel-center{
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:38px;height:38px;
+  border-radius:50%;
+  background:var(--bg);
+  border:3px solid rgba(255,255,255,.12);
+  z-index:2;
+}
+
+.wheel-label{
+  position:absolute;
+  left:50%;top:50%;
+  transform-origin:0 0;
+  font-family:'DM Mono',monospace;
+  font-size:.62rem;
+  font-weight:400;
+  color:rgba(0,0,0,.75);
+  width:1.4rem;
+  text-align:center;
+  pointer-events:none;
+}
+
+.wheel-hint{
+  font-family:'DM Mono',monospace;
+  font-size:.72rem;
+  color:var(--muted);
+  letter-spacing:.06em;
+  margin-top:.75rem;
+  text-align:center;
+}
+
+.wheel-empty{
+  text-align:center;
+  color:var(--accent2);
+  font-family:'DM Mono',monospace;
+  font-size:.82rem;
+  padding:2rem;
+  letter-spacing:.04em;
+}
+
+/* ───── QUEST CARD ───── */
+.quest-card{
+  background:linear-gradient(145deg, #141420 0%, #0f0f1a 100%);
+  border:1px solid var(--border2);
+  border-radius:16px;
+  padding:1.4rem;
+  margin-top:1rem;
+  animation:slide-up .35s ease;
+}
+
+@keyframes slide-up{
+  from{opacity:0;transform:translateY(12px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+.quest-card.done-row{opacity:.5}
+
+.quest-card-header{
+  display:flex;align-items:flex-start;gap:.75rem;
+  margin-bottom:.75rem;
+}
+
+.quest-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.4rem;
+  letter-spacing:.04em;
+  line-height:1.15;
+  flex:1;
+}
+
+.quest-level{
+  font-family:'DM Mono',monospace;
+  font-size:.65rem;
+  letter-spacing:.1em;
+  padding:.3rem .6rem;
+  border-radius:6px;
+  background:rgba(200,255,87,.08);
+  border:1px solid rgba(200,255,87,.2);
+  color:var(--accent);
+  white-space:nowrap;
+  flex-shrink:0;
+}
+
+.quest-desc{
+  font-size:.9rem;
+  color:var(--muted);
+  line-height:1.55;
+  margin-bottom:1rem;
+}
+
+.quest-meta{
+  display:flex;flex-wrap:wrap;gap:.35rem;
+  margin-bottom:1rem;
+}
+
+.badge{
+  display:inline-flex;align-items:center;gap:.3rem;
+  font-family:'DM Mono',monospace;
+  font-size:.65rem;
+  letter-spacing:.07em;
+  padding:.28rem .7rem;
+  border-radius:999px;
+  border:1px solid var(--border2);
+  color:var(--muted);
+  text-transform:uppercase;
+}
+.badge.cat{border-color:rgba(123,123,255,.3);color:var(--accent3)}
+.badge.done-badge{border-color:rgba(77,255,180,.3);color:var(--done)}
+.badge.tag{border-color:var(--border);color:#6a6a88}
+
+.quest-instructions{
+  margin:1rem 0;
+  list-style:none;
+  counter-reset:steps;
+}
+.quest-instructions li{
+  counter-increment:steps;
+  display:flex;gap:.75rem;
+  font-size:.875rem;
+  line-height:1.55;
+  padding:.5rem 0;
+  border-bottom:1px solid var(--border);
+}
+.quest-instructions li:last-child{border:none}
+.quest-instructions li::before{
+  content:counter(steps);
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.1rem;
+  color:var(--accent);
+  min-width:1.2rem;
+  opacity:.7;
+}
+
+.actions{
+  display:flex;flex-wrap:wrap;gap:.45rem;
+  margin-top:1rem;
+}
+
+/* ───── TABLE (All Quests) ───── */
+.search-input{
+  margin-bottom:1rem;
+}
+
+.quest-table-wrap{
+  overflow-x:auto;
+  border-radius:12px;
+  border:1px solid var(--border);
+}
+
+table{width:100%;border-collapse:collapse;font-size:.84rem}
+th{
+  font-family:'DM Mono',monospace;
+  font-size:.65rem;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--muted);
+  padding:.75rem .75rem;
+  text-align:left;
+  border-bottom:1px solid var(--border);
+  background:var(--surface2);
+  white-space:nowrap;
+}
+td{
+  padding:.7rem .75rem;
+  border-bottom:1px solid var(--border);
+  vertical-align:middle;
+}
+tr:last-child td{border:none}
+tr:hover td{background:rgba(255,255,255,.018)}
+.done-row td{opacity:.45}
+.td-title{font-weight:500;max-width:200px}
+.td-actions{display:flex;gap:.3rem;flex-wrap:nowrap}
+
+/* ───── FORM ───── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.7rem}
+@media(max-width:500px){.form-grid{grid-template-columns:1fr}}
+.form-full{grid-column:1/-1}
+
+/* ───── HISTORY ───── */
+.history-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1rem;
+}
+
+/* ───── SAVED ───── */
+.saved-list{list-style:none;display:grid;gap:.5rem}
+.saved-item{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.75rem 1rem;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  font-size:.88rem;
+}
+.saved-date{
+  font-family:'DM Mono',monospace;
+  font-size:.68rem;
+  color:var(--muted);
+}
+
+/* ───── SETTINGS ───── */
+.settings-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:.9rem 0;
+  border-bottom:1px solid var(--border);
+  font-size:.9rem;
+}
+.settings-row:last-child{border:none}
+.settings-label{display:flex;flex-direction:column;gap:.2rem}
+.settings-desc{font-size:.78rem;color:var(--muted)}
+
+/* ───── DIVIDER ───── */
+.divider{height:1px;background:var(--border);margin:.75rem 0}
+
+/* ───── EMPTY ───── */
+.empty-state{
+  text-align:center;
+  padding:2rem 1rem;
+  color:var(--muted);
+  font-family:'DM Mono',monospace;
+  font-size:.8rem;
+  letter-spacing:.05em;
+}
+.empty-state .empty-icon{font-size:2rem;margin-bottom:.5rem;display:block}
+
+/* ───── SCROLLBAR ───── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:999px}
+
+/* ───── MOBILE ───── */
+@media(max-width:430px){
+  .panel{padding:1rem}
+  .quest-card{padding:1rem}
+}
+
+/* ───── ANIMATIONS ───── */
+@keyframes fade-in{
+  from{opacity:0}to{opacity:1}
+}
+.animate-in{animation:fade-in .25s ease}
+
+/* ───── TOGGLE SWITCH ───── */
+.toggle{
+  position:relative;
+  width:42px;height:24px;
+  flex-shrink:0;
+}
+.toggle input{opacity:0;width:0;height:0}
+.toggle-slider{
+  position:absolute;inset:0;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:999px;
+  cursor:pointer;
+  transition:.2s;
+}
+.toggle-slider::before{
+  content:'';
+  position:absolute;
+  top:3px;left:3px;
+  width:16px;height:16px;
+  background:var(--muted);
+  border-radius:50%;
+  transition:.2s;
+}
+.toggle input:checked + .toggle-slider{background:var(--accent);border-color:var(--accent)}
+.toggle input:checked + .toggle-slider::before{
+  transform:translateX(18px);
+  background:#0a0a0f;
+}
+
+/* ───── CATEGORY PILL SELECTOR ───── */
+.pill-wrap{display:flex;flex-wrap:wrap;gap:.35rem}
+.pill-option{
+  font-family:'DM Mono',monospace;
+  font-size:.68rem;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  padding:.32rem .75rem;
+  border-radius:999px;
+  border:1px solid var(--border2);
+  background:transparent;
+  color:var(--muted);
+  cursor:pointer;
+  transition:all .15s;
+}
+.pill-option.selected{
+  border-color:var(--accent3);
+  color:var(--accent3);
+  background:rgba(123,123,255,.08);
+}
+.pill-option:hover:not(.selected){border-color:var(--border2);color:var(--txt)}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════
+const BASE_QUESTS = [
+  {id:"base-1",title:"Take a train to a random city and figure it out when you get there",description:"Travel & Adventure challenge.",category:"travel",tags:["spontaneous","city","explore"],duration_min:240,duration_max:720,setting:"outdoor",group_mode:"solo",adventure_level:5,equipment:["phone","ticket"],constraints:{budget_max_chf:180,weather_required:"any"},instructions:["Pick the next available train to a city you do not know well.","When you arrive, choose one place to explore and one local meal.","Document three moments that surprised you."],created_at:"2026-01-01T10:00:00.000Z",source:"base"},
+  {id:"base-2",title:"Sleep under the stars somewhere you've never been",description:"Travel & Adventure challenge.",category:"outdoor",tags:["night","nature","brave"],duration_min:360,duration_max:720,setting:"outdoor",group_mode:"both",adventure_level:4,equipment:["sleeping bag"],constraints:{budget_max_chf:80,weather_required:"dry"},instructions:["Find a legal and safe outdoor spot.","Pack only essentials for one night.","Watch the sky for 15 minutes without your phone."],created_at:"2026-01-02T10:00:00.000Z",source:"base"},
+  {id:"base-3",title:"Visit a town with a population under 500",description:"Travel & Adventure challenge.",category:"travel",tags:["roadtrip","smalltown","curious"],duration_min:180,duration_max:480,setting:"outdoor",group_mode:"both",adventure_level:3,equipment:["phone"],constraints:{budget_max_chf:50,weather_required:"any"},instructions:["Pick a tiny town nearby.","Talk to one local person.","Write down what felt different from your city."],created_at:"2026-01-03T10:00:00.000Z",source:"base"},
+  {id:"base-4",title:"Eat alone at a fancy restaurant and enjoy every second of it",description:"Social & Human Connection challenge.",category:"food",tags:["comfortzone","confidence","food"],duration_min:90,duration_max:180,setting:"indoor",group_mode:"solo",adventure_level:3,equipment:["wallet"],constraints:{budget_max_chf:120,weather_required:"none"},instructions:["Book a table for one.","Order slowly and stay present.","End the night by writing one thing you learned about yourself."],created_at:"2026-01-04T10:00:00.000Z",source:"base"},
+  {id:"base-5",title:"Get on a flight with only a carry-on and no hotel booked",description:"Travel & Adventure challenge.",category:"travel",tags:["risk","spontaneous","minimal"],duration_min:720,duration_max:2880,setting:"both",group_mode:"solo",adventure_level:5,equipment:["passport","carry-on"],constraints:{budget_max_chf:600,weather_required:"any"},instructions:["Choose a destination with easy arrival options.","Plan only first-night safety basics.","Let day one be guided by local recommendations."],created_at:"2026-01-05T10:00:00.000Z",source:"base"},
+  {id:"base-6",title:"Find the highest point in your city and watch the sunset from there",description:"Travel & Adventure challenge.",category:"outdoor",tags:["sunset","city","reflection"],duration_min:60,duration_max:150,setting:"outdoor",group_mode:"both",adventure_level:2,equipment:["comfortable shoes"],constraints:{budget_max_chf:0,weather_required:"dry"},instructions:["Locate the highest accessible point.","Arrive 20 minutes before sunset.","Watch in silence until the last light fades."],created_at:"2026-01-06T10:00:00.000Z",source:"base"},
+  {id:"base-7",title:"Walk into a museum you've never noticed before",description:"Creative challenge.",category:"creativity",tags:["culture","museum","curious"],duration_min:60,duration_max:180,setting:"indoor",group_mode:"both",adventure_level:2,equipment:["ticket"],constraints:{budget_max_chf:25,weather_required:"none"},instructions:["Choose a museum you have ignored.","Spend at least 30 minutes on one floor.","Take one note about a piece that stayed with you."],created_at:"2026-01-07T10:00:00.000Z",source:"base"},
+  {id:"base-8",title:"Spend a full day in a neighborhood you always drive past",description:"Travel & Adventure challenge.",category:"travel",tags:["local","deepdive","urban"],duration_min:300,duration_max:720,setting:"both",group_mode:"both",adventure_level:3,equipment:["phone"],constraints:{budget_max_chf:40,weather_required:"any"},instructions:["Pick one neighborhood and stay there all day.","Try one café, one walk, and one random shop.","Leave with a mini-guide for a friend."],created_at:"2026-01-08T10:00:00.000Z",source:"base"},
+  {id:"base-9",title:"Strike up a real conversation with a stranger at a café and actually listen",description:"Social & Human Connection challenge.",category:"social",tags:["social","listening","human"],duration_min:15,duration_max:45,setting:"both",group_mode:"solo",adventure_level:3,equipment:["none"],constraints:{budget_max_chf:10,weather_required:"none"},instructions:["Start with a simple warm question.","Listen more than you speak.","Thank them for the conversation."],created_at:"2026-01-09T10:00:00.000Z",source:"base"},
+  {id:"base-10",title:"Write a letter to someone who changed your life and actually send it",description:"Social & Human Connection challenge.",category:"social",tags:["gratitude","letter","connection"],duration_min:20,duration_max:60,setting:"indoor",group_mode:"solo",adventure_level:2,equipment:["paper","envelope"],constraints:{budget_max_chf:5,weather_required:"none"},instructions:["Write honestly and specifically.","Do not over-edit.","Send it the same day."],created_at:"2026-01-10T10:00:00.000Z",source:"base"},
+  {id:"base-11",title:"Attend an event where you know absolutely no one",description:"Social & Human Connection challenge.",category:"social",tags:["network","courage","event"],duration_min:90,duration_max:240,setting:"both",group_mode:"solo",adventure_level:4,equipment:["phone"],constraints:{budget_max_chf:35,weather_required:"any"},instructions:["Find an open event in your city.","Introduce yourself to at least two people.","Stay for one full hour minimum."],created_at:"2026-01-11T10:00:00.000Z",source:"base"},
+  {id:"base-12",title:"Compliment five strangers in one day and mean every word",description:"Social & Human Connection challenge.",category:"social",tags:["kindness","confidence","social"],duration_min:30,duration_max:180,setting:"both",group_mode:"solo",adventure_level:3,equipment:["none"],constraints:{budget_max_chf:0,weather_required:"none"},instructions:["Give specific and respectful compliments.","Focus on sincerity, not speed.","Reflect on how people reacted."],created_at:"2026-01-12T10:00:00.000Z",source:"base"},
+  {id:"base-13",title:"Call an old friend you haven't spoken to in years with no agenda",description:"Social & Human Connection challenge.",category:"social",tags:["friendship","reconnect","phone"],duration_min:20,duration_max:50,setting:"indoor",group_mode:"solo",adventure_level:2,equipment:["phone"],constraints:{budget_max_chf:0,weather_required:"none"},instructions:["Pick one person and call, not text.","Ask about their life and listen deeply.","End with one honest memory you still value."],created_at:"2026-01-13T10:00:00.000Z",source:"base"},
+  {id:"base-14",title:"Cook a full meal for someone who needs it right now",description:"Social & Human Connection challenge.",category:"social",tags:["care","food","service"],duration_min:60,duration_max:150,setting:"indoor",group_mode:"both",adventure_level:3,equipment:["kitchen"],constraints:{budget_max_chf:30,weather_required:"none"},instructions:["Choose someone who would genuinely benefit.","Cook a balanced simple meal.","Deliver it with a short, kind note."],created_at:"2026-01-14T10:00:00.000Z",source:"base"},
+  {id:"base-15",title:"Ask an elderly person about their biggest regret and listen without your phone",description:"Social & Human Connection challenge.",category:"social",tags:["wisdom","listening","presence"],duration_min:30,duration_max:90,setting:"both",group_mode:"solo",adventure_level:3,equipment:["none"],constraints:{budget_max_chf:0,weather_required:"none"},instructions:["Ask with empathy and respect.","Keep your phone away completely.","Write down one lesson afterwards."],created_at:"2026-01-15T10:00:00.000Z",source:"base"},
+  {id:"base-16",title:"Start a journal and write only in third person",description:"Creative challenge.",category:"mindset",tags:["journal","mindset","reflection"],duration_min:15,duration_max:30,setting:"indoor",group_mode:"solo",adventure_level:2,equipment:["notebook"],constraints:{budget_max_chf:0,weather_required:"none"},instructions:["Describe your day as if you are observing yourself.","Keep it short but specific.","Repeat for three consecutive days."],created_at:"2026-01-16T10:00:00.000Z",source:"base"},
+  {id:"base-17",title:"Take 30 photos in one hour with no filter and no retakes",description:"Creative challenge.",category:"creativity",tags:["photo","creative","challenge"],duration_min:60,duration_max:90,setting:"both",group_mode:"solo",adventure_level:3,equipment:["phone"],constraints:{budget_max_chf:0,weather_required:"any"},instructions:["Set a one-hour timer.","Shoot 30 unique frames only once each.","Pick your top three and explain why."],created_at:"2026-01-17T10:00:00.000Z",source:"base"},
+  {id:"base-18",title:"Write a short story about your life but set it 200 years ago",description:"Creative challenge.",category:"creativity",tags:["story","imagination","writing"],duration_min:45,duration_max:120,setting:"indoor",group_mode:"solo",adventure_level:4,equipment:["notebook","laptop"],constraints:{budget_max_chf:0,weather_required:"none"},instructions:["Pick one real event from your life.","Translate it into a different historical setting.","Finish with one fictional twist."],created_at:"2026-01-18T10:00:00.000Z",source:"base"},
+  {id:"base-19",title:"Paint or draw something terrible and hang it on your wall anyway",description:"Creative challenge.",category:"creativity",tags:["art","imperfection","courage"],duration_min:30,duration_max:90,setting:"indoor",group_mode:"solo",adventure_level:2,equipment:["paper","colors"],constraints:{budget_max_chf:10,weather_required:"none"},instructions:["Create quickly without judging.","Sign and date it.","Hang it where you can see it for a week."],created_at:"2026-01-19T10:00:00.000Z",source:"base"},
+  {id:"base-20",title:"Record yourself talking for 10 minutes about anything and play it back",description:"Creative challenge.",category:"mindset",tags:["selfawareness","voice","growth"],duration_min:15,duration_max:25,setting:"indoor",group_mode:"solo",adventure_level:3,equipment:["phone"],constraints:{budget_max_chf:0,weather_required:"none"},instructions:["Set a 10-minute recording.","Speak freely without stopping.","Replay once and note one improvement."],created_at:"2026-01-20T10:00:00.000Z",source:"base"},
+  {id:"base-21",title:"Rearrange your entire living space in one afternoon",description:"Creative challenge.",category:"mindset",tags:["home","reset","energy"],duration_min:120,duration_max:240,setting:"indoor",group_mode:"both",adventure_level:3,equipment:["none"],constraints:{budget_max_chf:0,weather_required:"none"},instructions:["Choose a start and end time.","Move major pieces first.","Finish by removing at least five unnecessary items."],created_at:"2026-01-21T10:00:00.000Z",source:"base"},
+  {id:"base-22",title:"Make a playlist for a version of yourself that doesn't exist yet",description:"Creative challenge.",category:"creativity",tags:["music","future-self","vision"],duration_min:25,duration_max:60,setting:"indoor",group_mode:"solo",adventure_level:2,equipment:["music app"],constraints:{budget_max_chf:0,weather_required:"none"},instructions:["Define the future version in one sentence.","Select 12 songs that match that identity.","Listen once and write down the feeling."],created_at:"2026-01-22T10:00:00.000Z",source:"base"}
+];
+
+// ═══════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════
+const SK = {custom:"quests_custom",edits:"quests_edits",deleted:"quests_deleted",history:"quest_history",saved:"quest_saved",settings:"sq_settings"};
+const defaultSettings = {exclude_done_from_random:true,show_done_as_grey:true};
+const durationBuckets = {any:null,"5-10":[5,10],"10-20":[10,20],"20-45":[20,45],"45-90":[45,90],"90+":[90,Infinity]};
+const CATEGORIES = ["outdoor","creativity","social","mindset","fitness","food","travel"];
+
+function loadJSON(key,fallback){try{const r=localStorage.getItem(key);return r?JSON.parse(r):fallback}catch{return fallback}}
+function saveJSON(key,val){localStorage.setItem(key,JSON.stringify(val))}
+function nowIso(){return new Date().toISOString()}
+
+function getStore(){return{
+  custom:loadJSON(SK.custom,[]),
+  edits:loadJSON(SK.edits,{}),
+  deleted:loadJSON(SK.deleted,[]),
+  history:loadJSON(SK.history,[]),
+  saved:loadJSON(SK.saved,[]),
+  settings:{...defaultSettings,...loadJSON(SK.settings,{})},
+}}
+function setStorePatch(patch){Object.entries(patch).forEach(([k,v])=>saveJSON(SK[k],v))}
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+const state = {
+  activeTab:"roulette",
+  editingQuestId:null,
+  rouletteSelectionId:null,
+  rouletteSpinning:false,
+  rouletteRotation:0,
+  filters:{categories:[],duration_bucket:"any",setting:"any",group_mode:"any",adventure_level_min:1,tags:[],include_done:true},
+  allQuestsSearch:"",
+  historyStatus:"all",
+};
+
+// ═══════════════════════════════════════════════
+// LOGIC
+// ═══════════════════════════════════════════════
+function questDoneIds(history){return new Set(history.filter(h=>h.status==="done").map(h=>h.quest_id))}
+
+function mergeQuests(store){
+  const all=[...BASE_QUESTS,...store.custom];
+  const deleted=new Set(store.deleted);
+  return all.filter(q=>!deleted.has(q.id)).map(q=>{const p=store.edits[q.id]||{};return{...q,...p}});
+}
+
+function overlapsBucket(q,bucket){
+  if(!durationBuckets[bucket])return true;
+  const[min,max]=durationBuckets[bucket];
+  return q.duration_min<=max&&q.duration_max>=min;
+}
+
+function applyFilters(quests,filters,doneSet){
+  return quests.filter(q=>{
+    if(filters.categories.length&&!filters.categories.includes(q.category))return false;
+    if(!overlapsBucket(q,filters.duration_bucket))return false;
+    if(filters.setting!=="any"&&q.setting!=="both"&&q.setting!==filters.setting)return false;
+    if(filters.group_mode!=="any"&&q.group_mode!=="both"&&q.group_mode!==filters.group_mode)return false;
+    if(q.adventure_level<filters.adventure_level_min)return false;
+    if(filters.tags.length&&!filters.tags.every(tag=>q.tags.includes(tag)))return false;
+    if(!filters.include_done&&doneSet.has(q.id))return false;
+    return true;
+  });
+}
+
+function randomFrom(arr){return arr[Math.floor(Math.random()*arr.length)]}
+function esc(s=""){return String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}
+function uniqueTags(quests){return[...new Set(quests.flatMap(q=>q.tags))].sort((a,b)=>a.localeCompare(b,"de"))}
+function upsertEdit(id,payload){const s=getStore();setStorePatch({edits:{...s.edits,[id]:{...(s.edits[id]||{}),...payload,updated_at:nowIso()}}})}
+
+function rotateToWinner(pool,winnerIndex){
+  const seg=360/pool.length;
+  const targetCenter=winnerIndex*seg+seg/2;
+  const current=((state.rouletteRotation%360)+360)%360;
+  const desired=(360-targetCenter)%360;
+  const delta=(desired-current+360)%360;
+  state.rouletteRotation+=2160+delta;
+}
+
+// ═══════════════════════════════════════════════
+// RENDER HELPERS
+// ═══════════════════════════════════════════════
+function catIcon(cat){
+  const icons={outdoor:"🌲",creativity:"🎨",social:"🤝",mindset:"🧠",fitness:"⚡",food:"🍽️",travel:"✈️"};
+  return icons[cat]||"⭐";
+}
+
+function levelDots(n){
+  return Array.from({length:5},(_,i)=>`<span style="color:${i<n?'var(--accent)':'var(--border2)'};font-size:.8rem">●</span>`).join("");
+}
+
+function renderBadge(text,cls=""){return`<span class="badge ${cls}">${esc(text)}</span>`}
+
+function renderQuestCard(q,doneSet){
+  if(!q)return`<div class="empty-state"><span class="empty-icon">🎰</span>Spin das Rad um eine Sidequest zu picken.</div>`;
+  const done=doneSet.has(q.id);
+  return`
+  <article class="quest-card ${done?"done-row":""}">
+    <div class="quest-card-header">
+      <h3 class="quest-title">${esc(q.title)}</h3>
+      <span class="quest-level">${levelDots(q.adventure_level)}</span>
+    </div>
+    ${q.description?`<p class="quest-desc">${esc(q.description)}</p>`:""}
+    <div class="quest-meta">
+      ${renderBadge(catIcon(q.category)+" "+q.category,"cat")}
+      ${renderBadge("⏱ "+q.duration_min+"–"+q.duration_max+" min")}
+      ${renderBadge(q.setting==="both"?"🌍 any":q.setting==="outdoor"?"🌤 outdoor":"🏠 indoor")}
+      ${renderBadge(q.group_mode==="both"?"👥 any":q.group_mode==="group"?"👥 group":"🙋 solo")}
+      ${done?renderBadge("✓ done","done-badge"):""}
+      ${(q.constraints?.budget_max_chf>0)?renderBadge("CHF "+q.constraints.budget_max_chf):""}
+    </div>
+    <ol class="quest-instructions">${q.instructions.map(i=>`<li>${esc(i)}</li>`).join("")}</ol>
+    ${q.tags.length?`<div class="quest-meta">${q.tags.map(t=>renderBadge(t,"tag")).join("")}</div>`:""}
+    <div class="actions">
+      <button class="btn btn-primary btn-sm" data-action="done" data-id="${q.id}">✓ Done</button>
+      <button class="btn btn-sm" data-action="skip" data-id="${q.id}">↷ Skip</button>
+      <button class="btn btn-sm" data-action="save" data-id="${q.id}">♡ Save</button>
+      <button class="btn btn-sm" data-action="spin">↻ Nochmal</button>
+    </div>
+  </article>`;
+}
+
+function renderFilterPanel(allTags,mergedQuests,doneSet){
+  const filtered=applyFilters(mergedQuests,state.filters,doneSet);
+  return`
+  <div class="panel">
+    <div class="panel-title">Filter</div>
+    <div style="margin-bottom:.75rem">
+      <div style="font-family:'DM Mono',monospace;font-size:.68rem;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-bottom:.4rem">Kategorien</div>
+      <div class="pill-wrap">
+        ${CATEGORIES.map(c=>`<button class="pill-option ${state.filters.categories.includes(c)?"selected":""}" data-cat="${c}">${catIcon(c)} ${c}</button>`).join("")}
+      </div>
+    </div>
+    <div class="filter-grid">
+      <label>Dauer
+        <select data-filter="duration_bucket">
+          ${Object.keys(durationBuckets).map(d=>`<option ${state.filters.duration_bucket===d?"selected":""} value="${d}">${d}</option>`).join("")}
+        </select>
+      </label>
+      <label>Setting
+        <select data-filter="setting">
+          ${["any","indoor","outdoor"].map(s=>`<option ${state.filters.setting===s?"selected":""}>${s}</option>`).join("")}
+        </select>
+      </label>
+      <label>Gruppe
+        <select data-filter="group_mode">
+          ${["any","solo","group"].map(s=>`<option ${state.filters.group_mode===s?"selected":""}>${s}</option>`).join("")}
+        </select>
+      </label>
+      <label>Adventure ≥
+        <input data-filter="adventure_level_min" type="number" min="1" max="5" value="${state.filters.adventure_level_min}"/>
+      </label>
+      <label class="inline" style="grid-column:1/-1">
+        <span>Erledigte einschliessen</span>
+        <label class="toggle"><input type="checkbox" data-filter="include_done" ${state.filters.include_done?"checked":""}><span class="toggle-slider"></span></label>
+      </label>
+    </div>
+    <p class="filter-count">${filtered.length} Quest${filtered.length!==1?"s":""} gefunden</p>
+  </div>`;
+}
+
+function wheelGradient(n){
+  const colors=["#c8ff57","#7bffce","#7b7bff","#ff6b35","#57d4ff","#ff57b0","#ffe157"];
+  return`conic-gradient(from -90deg,${Array.from({length:n},(_,i)=>{
+    const s=(i*360/n).toFixed(2),e=((i+1)*360/n).toFixed(2);
+    return`${colors[i%colors.length]} ${s}deg ${e}deg`;
+  }).join(",")})`;
+}
+
+function renderWheel(pool){
+  if(!pool.length)return`<div class="wheel-empty">Pool leer.<br>Filter lockern oder Done einschliessen.</div>`;
+  const labels=pool.map((q,i)=>{
+    const angle=(i+.5)*360/pool.length-90;
+    const r=.38;
+    const rad=angle*Math.PI/180;
+    const x=50+r*Math.cos(rad)*100;
+    const y=50+r*Math.sin(rad)*100;
+    return`<span class="wheel-label" style="left:${x}%;top:${y}%;transform:translate(-50%,-50%) rotate(${angle+90}deg)">${i+1}</span>`;
+  }).join("");
+  return`
+  <div class="wheel-outer">
+    <div class="wheel-container">
+      <div class="wheel-pointer"></div>
+      <div class="wheel" style="background:${wheelGradient(pool.length)};transform:rotate(${state.rouletteRotation}deg)">
+        ${labels}
+        <div class="wheel-center"></div>
+      </div>
+    </div>
+    <p class="wheel-hint">${pool.length} Segment${pool.length!==1?"e":""} · je 1 Quest</p>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// VIEWS
+// ═══════════════════════════════════════════════
+function layout(content){
+  const tabs=[
+    {id:"roulette",label:"Picker"},
+    {id:"all",label:"Alle"},
+    {id:"create",label:"Neu"},
+    {id:"history",label:"Verlauf"},
+    {id:"saved",label:"Saved"},
+    {id:"settings",label:"⚙"},
+  ];
+  return`
+  <header>
+    <div class="header-top">
+      <span class="logo-mark">Sidequest</span>
+      <span class="logo-sub">Picker</span>
+    </div>
+    <nav>
+      ${tabs.map(t=>`<button data-tab="${t.id}" class="tab ${state.activeTab===t.id?"active":""}">${t.label}</button>`).join("")}
+    </nav>
+  </header>
+  <main class="animate-in">${content}</main>`;
+}
+
+function rouletteView(ctx){
+  const pool=ctx.filteredQuests.filter(q=>!ctx.store.settings.exclude_done_from_random||!ctx.doneSet.has(q.id));
+  const selected=ctx.mergedQuests.find(q=>q.id===state.rouletteSelectionId);
+  return layout(`
+    ${renderFilterPanel(ctx.tags,ctx.mergedQuests,ctx.doneSet)}
+    <div class="panel">
+      <div class="panel-title">Roulette</div>
+      <div class="spin-wrap">
+        <button class="btn-spin ${state.rouletteSpinning?"spinning":""}" data-action="spin" ${state.rouletteSpinning?"disabled":""}>
+          <span>${state.rouletteSpinning?"Spinning…":"Spin"}</span>
+        </button>
+      </div>
+      ${renderWheel(pool)}
+      ${renderQuestCard(selected,ctx.doneSet)}
+    </div>
+  `);
+}
+
+function allQuestsView(ctx){
+  const search=state.allQuestsSearch.toLowerCase();
+  const results=[...ctx.filteredQuests]
+    .filter(q=>!search||q.title.toLowerCase().includes(search)||q.tags.join(" ").toLowerCase().includes(search))
+    .sort((a,b)=>{
+      const dd=Number(ctx.doneSet.has(a.id))-Number(ctx.doneSet.has(b.id));
+      return dd!==0?dd:a.title.localeCompare(b.title,"de");
+    });
+  return layout(`
+    ${renderFilterPanel(ctx.tags,ctx.mergedQuests,ctx.doneSet)}
+    <div class="panel">
+      <div class="panel-title">Alle Quests</div>
+      <input class="search-input" data-action="search-all" placeholder="🔍 Titel oder Tag suchen…" value="${esc(state.allQuestsSearch)}"/>
+      <div class="quest-table-wrap">
+        <table>
+          <thead><tr><th>Titel</th><th>Kat.</th><th>Dauer</th><th>Status</th><th>Aktionen</th></tr></thead>
+          <tbody>
+            ${results.map(q=>`
+            <tr class="${ctx.doneSet.has(q.id)?"done-row":""}">
+              <td class="td-title">${esc(q.title)}</td>
+              <td><span class="badge cat">${catIcon(q.category)} ${q.category}</span></td>
+              <td><span style="font-family:'DM Mono',monospace;font-size:.75rem;color:var(--muted)">${q.duration_min}–${q.duration_max}m</span></td>
+              <td>${ctx.doneSet.has(q.id)?`<span class="badge done-badge">✓ done</span>`:`<span class="badge">open</span>`}</td>
+              <td><div class="td-actions">
+                <button class="btn btn-sm" data-action="edit" data-id="${q.id}">Edit</button>
+                <button class="btn btn-sm btn-danger" data-action="delete" data-id="${q.id}">Del</button>
+              </div></td>
+            </tr>`).join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `);
+}
+
+function questFormView(ctx,quest){
+  const isEdit=Boolean(quest);
+  return layout(`
+    <div class="panel">
+      <div class="panel-title">${isEdit?"Quest bearbeiten":"Neue Quest"}</div>
+      <form id="quest-form">
+        <input type="hidden" name="id" value="${esc(quest?.id||"")}"/>
+        <div class="form-grid">
+          <label class="form-full">Titel
+            <input required minlength="3" maxlength="80" name="title" value="${esc(quest?.title||"")}" placeholder="Quest Titel…"/>
+          </label>
+          <label class="form-full">Beschreibung
+            <textarea name="description" placeholder="Kurze Beschreibung…">${esc(quest?.description||"")}</textarea>
+          </label>
+          <label>Kategorie
+            <select name="category">${CATEGORIES.map(c=>`<option ${quest?.category===c?"selected":""}>${c}</option>`).join("")}</select>
+          </label>
+          <label>Tags (komma)
+            <input name="tags" value="${esc((quest?.tags||[]).join(","))}" placeholder="sport, natur, …"/>
+          </label>
+          <label>Dauer min
+            <input type="number" name="duration_min" min="1" value="${quest?.duration_min||10}"/>
+          </label>
+          <label>Dauer max
+            <input type="number" name="duration_max" min="1" value="${quest?.duration_max||20}"/>
+          </label>
+          <label>Setting
+            <select name="setting">${["indoor","outdoor","both"].map(c=>`<option ${quest?.setting===c?"selected":""}>${c}</option>`).join("")}</select>
+          </label>
+          <label>Gruppen-Modus
+            <select name="group_mode">${["solo","group","both"].map(c=>`<option ${quest?.group_mode===c?"selected":""}>${c}</option>`).join("")}</select>
+          </label>
+          <label>Adventure Level (1–5)
+            <input type="number" min="1" max="5" name="adventure_level" value="${quest?.adventure_level||1}"/>
+          </label>
+          <label>Budget CHF
+            <input type="number" step="1" min="0" name="budget_max_chf" value="${quest?.constraints?.budget_max_chf??""}" placeholder="0"/>
+          </label>
+          <label class="form-full">Ausrüstung (komma)
+            <input name="equipment" value="${esc((quest?.equipment||[]).join(","))}" placeholder="Rucksack, Kamera, …"/>
+          </label>
+          <label class="form-full">Wetter
+            <select name="weather_required">${["none","dry","any"].map(c=>`<option ${quest?.constraints?.weather_required===c?"selected":""}>${c}</option>`).join("")}</select>
+          </label>
+          <label class="form-full">Schritte (eine pro Zeile)
+            <textarea name="instructions" placeholder="Schritt 1&#10;Schritt 2&#10;Schritt 3">${esc((quest?.instructions||[""]).join("\n"))}</textarea>
+          </label>
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap">
+          <button type="submit" class="btn btn-primary">Quest speichern</button>
+          <button type="button" class="btn" data-action="cancel-edit">Abbrechen</button>
+        </div>
+      </form>
+    </div>
+  `);
+}
+
+function historyView(ctx){
+  const rows=[...ctx.store.history]
+    .filter(h=>state.historyStatus==="all"||h.status===state.historyStatus)
+    .sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
+  return layout(`
+    <div class="panel">
+      <div class="history-header">
+        <div class="panel-title" style="margin-bottom:0">Verlauf</div>
+        <select data-action="history-filter" style="width:auto">
+          ${["all","done","skip"].map(s=>`<option ${state.historyStatus===s?"selected":""}>${s}</option>`).join("")}
+        </select>
+      </div>
+      <div class="quest-table-wrap">
+        <table>
+          <thead><tr><th>Quest</th><th>Status</th><th>Datum</th></tr></thead>
+          <tbody>
+            ${rows.length?rows.map(h=>{
+              const q=ctx.mergedQuests.find(x=>x.id===h.quest_id);
+              return`<tr>
+                <td>${esc(q?.title||h.quest_id)}</td>
+                <td>${h.status==="done"?`<span class="badge done-badge">✓ done</span>`:`<span class="badge">skip</span>`}</td>
+                <td style="font-family:'DM Mono',monospace;font-size:.72rem;color:var(--muted)">${new Date(h.timestamp).toLocaleString("de-CH")}</td>
+              </tr>`;
+            }).join(""):`<tr><td colspan="3" class="empty-state">Noch kein Verlauf.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `);
+}
+
+function savedView(ctx){
+  const items=[...ctx.store.saved].sort((a,b)=>new Date(b.saved_at)-new Date(a.saved_at));
+  return layout(`
+    <div class="panel">
+      <div class="panel-title">Gespeichert</div>
+      ${items.length?`<ul class="saved-list">${items.map(s=>{
+        const q=ctx.mergedQuests.find(x=>x.id===s.quest_id);
+        return`<li class="saved-item">
+          <span>${esc(q?.title||s.quest_id)}</span>
+          <span class="saved-date">${new Date(s.saved_at).toLocaleDateString("de-CH")}</span>
+        </li>`;
+      }).join("")}</ul>`:`<div class="empty-state"><span class="empty-icon">♡</span>Noch nichts gespeichert.</div>`}
+    </div>
+  `);
+}
+
+function settingsView(ctx){
+  const s=ctx.store.settings;
+  const rows=[
+    {key:"exclude_done_from_random",label:"Erledigte vom Zufall ausschliessen",desc:"Bereits abgeschlossene Quests erscheinen nicht im Rad"},
+    {key:"show_done_as_grey",label:"Erledigte grau darstellen",desc:"Abgehakte Quests werden ausgegraut angezeigt"},
+  ];
+  return layout(`
+    <div class="panel">
+      <div class="panel-title">Einstellungen</div>
+      ${rows.map(r=>`
+      <div class="settings-row">
+        <div class="settings-label">
+          <span>${r.label}</span>
+          <span class="settings-desc">${r.desc}</span>
+        </div>
+        <label class="toggle">
+          <input type="checkbox" data-action="toggle-setting" data-key="${r.key}" ${s[r.key]?"checked":""}>
+          <span class="toggle-slider"></span>
+        </label>
+      </div>`).join("")}
+      <div style="margin-top:1.5rem">
+        <button class="btn btn-danger" data-action="reset-storage">⚠ localStorage zurücksetzen</button>
+      </div>
+    </div>
+  `);
+}
+
+// ═══════════════════════════════════════════════
+// MAIN RENDER
+// ═══════════════════════════════════════════════
+function deriveContext(){
+  const store=getStore();
+  const mergedQuests=mergeQuests(store);
+  const doneSet=questDoneIds(store.history);
+  const filteredQuests=applyFilters(mergedQuests,state.filters,doneSet);
+  const tags=uniqueTags(mergedQuests);
+  return{store,mergedQuests,doneSet,filteredQuests,tags};
+}
+
+function render(){
+  const app=document.getElementById("app");
+  const ctx=deriveContext();
+  let view="";
+  if(state.activeTab==="roulette")view=rouletteView(ctx);
+  else if(state.activeTab==="all")view=allQuestsView(ctx);
+  else if(state.activeTab==="create")view=questFormView(ctx,state.editingQuestId?ctx.mergedQuests.find(q=>q.id===state.editingQuestId):null);
+  else if(state.activeTab==="history")view=historyView(ctx);
+  else if(state.activeTab==="saved")view=savedView(ctx);
+  else if(state.activeTab==="settings")view=settingsView(ctx);
+  app.innerHTML=view;
+  attachEvents(ctx);
+}
+
+function parseList(v){return v.split(",").map(x=>x.trim()).filter(Boolean)}
+
+// ═══════════════════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════════════════
+function attachEvents(ctx){
+  // Tabs
+  document.querySelectorAll("[data-tab]").forEach(btn=>btn.addEventListener("click",()=>{
+    state.activeTab=btn.dataset.tab;
+    if(state.activeTab!=="create")state.editingQuestId=null;
+    render();
+  }));
+
+  // Category pills
+  document.querySelectorAll("[data-cat]").forEach(btn=>btn.addEventListener("click",()=>{
+    const cat=btn.dataset.cat;
+    const idx=state.filters.categories.indexOf(cat);
+    if(idx===-1)state.filters.categories.push(cat);
+    else state.filters.categories.splice(idx,1);
+    render();
+  }));
+
+  // Filters
+  document.querySelectorAll("[data-filter]").forEach(el=>el.addEventListener("change",()=>{
+    const key=el.dataset.filter;
+    if(el.type==="checkbox")state.filters[key]=el.checked;
+    else if(el.type==="number")state.filters[key]=Number(el.value);
+    else state.filters[key]=el.value;
+    render();
+  }));
+
+  // Search
+  document.querySelectorAll("[data-action='search-all']").forEach(el=>el.addEventListener("input",()=>{
+    state.allQuestsSearch=el.value;render();
+  }));
+
+  // History filter
+  document.querySelectorAll("[data-action='history-filter']").forEach(el=>el.addEventListener("change",()=>{
+    state.historyStatus=el.value;render();
+  }));
+
+  // Spin
+  document.querySelectorAll("[data-action='spin']").forEach(btn=>btn.addEventListener("click",async()=>{
+    const pool=ctx.filteredQuests.filter(q=>!ctx.store.settings.exclude_done_from_random||!ctx.doneSet.has(q.id));
+    if(!pool.length||state.rouletteSpinning)return;
+    const winner=randomFrom(pool);
+    const winnerIndex=pool.findIndex(q=>q.id===winner.id);
+    state.rouletteSpinning=true;
+    rotateToWinner(pool,winnerIndex);
+    render();
+    await new Promise(r=>setTimeout(r,4300));
+    state.rouletteSelectionId=winner.id;
+    state.rouletteSpinning=false;
+    render();
+  }));
+
+  // Done / Skip
+  document.querySelectorAll("[data-action='done'],[data-action='skip']").forEach(btn=>btn.addEventListener("click",()=>{
+    const s=getStore();
+    setStorePatch({history:[...s.history,{quest_id:btn.dataset.id,status:btn.dataset.action,timestamp:nowIso()}]});
+    render();
+  }));
+
+  // Save
+  document.querySelectorAll("[data-action='save']").forEach(btn=>btn.addEventListener("click",()=>{
+    const s=getStore();
+    setStorePatch({saved:[...s.saved,{quest_id:btn.dataset.id,saved_at:nowIso()}]});
+    render();
+  }));
+
+  // Edit
+  document.querySelectorAll("[data-action='edit']").forEach(btn=>btn.addEventListener("click",()=>{
+    state.editingQuestId=btn.dataset.id;
+    state.activeTab="create";
+    render();
+  }));
+
+  // Delete
+  document.querySelectorAll("[data-action='delete']").forEach(btn=>btn.addEventListener("click",()=>{
+    if(!confirm("Quest wirklich löschen?"))return;
+    const s=getStore();
+    if(s.deleted.includes(btn.dataset.id))return;
+    setStorePatch({deleted:[...s.deleted,btn.dataset.id]});
+    if(state.rouletteSelectionId===btn.dataset.id)state.rouletteSelectionId=null;
+    render();
+  }));
+
+  // Cancel edit
+  document.querySelectorAll("[data-action='cancel-edit']").forEach(btn=>btn.addEventListener("click",()=>{
+    state.activeTab="all";state.editingQuestId=null;render();
+  }));
+
+  // Settings toggle
+  document.querySelectorAll("[data-action='toggle-setting']").forEach(cb=>cb.addEventListener("change",()=>{
+    const s=getStore();
+    setStorePatch({settings:{...s.settings,[cb.dataset.key]:cb.checked}});
+    render();
+  }));
+
+  // Reset
+  document.querySelectorAll("[data-action='reset-storage']").forEach(btn=>btn.addEventListener("click",()=>{
+    if(!confirm("Wirklich alles zurücksetzen?"))return;
+    Object.values(SK).forEach(k=>localStorage.removeItem(k));
+    state.filters={categories:[],duration_bucket:"any",setting:"any",group_mode:"any",adventure_level_min:1,tags:[],include_done:true};
+    state.rouletteSelectionId=null;state.rouletteRotation=0;
+    render();
+  }));
+
+  // Form submit
+  const form=document.getElementById("quest-form");
+  if(form)form.addEventListener("submit",e=>{
+    e.preventDefault();
+    const fd=new FormData(form);
+    const id=fd.get("id")||`custom-${crypto.randomUUID()}`;
+    const payload={
+      id,
+      title:String(fd.get("title")||"").trim(),
+      description:String(fd.get("description")||"").trim(),
+      category:fd.get("category"),
+      tags:parseList(String(fd.get("tags")||"")),
+      duration_min:Number(fd.get("duration_min")),
+      duration_max:Number(fd.get("duration_max")),
+      setting:fd.get("setting"),
+      group_mode:fd.get("group_mode"),
+      adventure_level:Number(fd.get("adventure_level")),
+      equipment:parseList(String(fd.get("equipment")||"")),
+      constraints:{budget_max_chf:fd.get("budget_max_chf")?Number(fd.get("budget_max_chf")):undefined,weather_required:fd.get("weather_required")||"none"},
+      instructions:String(fd.get("instructions")||"").split("\n").map(s=>s.trim()).filter(Boolean),
+    };
+    if(payload.title.length<3)return alert("Titel muss mindestens 3 Zeichen haben.");
+    if(payload.duration_min>payload.duration_max)return alert("Min-Dauer muss ≤ Max-Dauer sein.");
+    if(payload.instructions.length<1)return alert("Mindestens einen Schritt angeben.");
+    const s=getStore();
+    const existsInBase=BASE_QUESTS.some(q=>q.id===id);
+    const existsInCustom=s.custom.some(q=>q.id===id);
+    if(!existsInBase&&!existsInCustom){
+      setStorePatch({custom:[...s.custom,{...payload,created_at:nowIso(),source:"custom"}]});
+    }else{
+      upsertEdit(id,payload);
+    }
+    state.activeTab="all";state.editingQuestId=null;render();
+  });
+}
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+render();
+</script>
+</body>
 </html>
