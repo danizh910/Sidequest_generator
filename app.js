@@ -27,7 +27,7 @@ const state = {
   editingQuestId: null,
   rouletteSelectionId: null,
   rouletteSpinning: false,
-  rouletteTicker: "",
+  rouletteRotation: 0,
   filters: defaultFilters(true),
   allQuestsSearch: "",
   historyStatus: "all",
@@ -88,9 +88,7 @@ function mergeQuests(baseQuests, store) {
     .filter((q) => !deleted.has(q.id))
     .map((q) => {
       const patch = store.edits[q.id] || {};
-      const merged = { ...q, ...patch };
-      if (Object.keys(patch).length > 0) merged.updated_at = nowIso();
-      return merged;
+      return { ...q, ...patch };
     });
 }
 
@@ -144,16 +142,17 @@ function badge(text, type = "") {
 function layout(content) {
   const tabs = ["roulette", "all", "create", "history", "saved", "settings"];
   const labels = {
-    roulette: "Roulette",
-    all: "All Quests",
-    create: "Create",
-    history: "History",
+    roulette: "Picker",
+    all: "Alle",
+    create: "Neu",
+    history: "Verlauf",
     saved: "Saved",
     settings: "Settings",
   };
   return `
     <header>
-      <h1>Sidequest Roulette</h1>
+      <p class="eyebrow">Fresh mobile adventure app</p>
+      <h1>Sidequest Picker</h1>
       <nav>
         ${tabs
           .map(
@@ -169,19 +168,18 @@ function layout(content) {
 
 function filterPanel(allTags, mergedQuests, doneSet) {
   const filtered = applyFilters(mergedQuests, state.filters, doneSet);
-  const suggestions = sortedSuggestions(filtered, doneSet).slice(0, 10);
   return `
     <section class="panel">
       <h3>Filter</h3>
       <div class="grid">
-        <label>Categories
+        <label>Kategorien
           <select multiple data-filter="categories">
-            ${["outdoor", "creativity", "money_business", "fitness"]
+            ${["outdoor", "creativity", "social", "mindset", "fitness", "food", "travel"]
               .map((c) => `<option ${state.filters.categories.includes(c) ? "selected" : ""} value="${c}">${c}</option>`)
               .join("")}
           </select>
         </label>
-        <label>Duration
+        <label>Dauer
           <select data-filter="duration_bucket">
             ${Object.keys(durationBuckets)
               .map((d) => `<option ${state.filters.duration_bucket === d ? "selected" : ""} value="${d}">${d}</option>`)
@@ -210,19 +208,12 @@ function filterPanel(allTags, mergedQuests, doneSet) {
           <input data-filter="include_done" type="checkbox" ${state.filters.include_done ? "checked" : ""} />
         </label>
       </div>
-      <p><strong>Matches:</strong> ${filtered.length}</p>
-      <ul class="suggestions">
-        ${suggestions
-          .map(
-            (q) => `<li>${esc(q.title)} ${doneSet.has(q.id) ? badge("done", "done") : ""} ${badge(q.category)}</li>`
-          )
-          .join("")}
-      </ul>
+      <p><strong>Treffer:</strong> ${filtered.length}</p>
     </section>`;
 }
 
 function questCard(q, doneSet) {
-  if (!q) return `<p>Keine Quest ausgewaehlt.</p>`;
+  if (!q) return `<p>Spin das Roulette, um eine Sidequest zu picken.</p>`;
   return `
     <article class="quest-card ${doneSet.has(q.id) ? "done-row" : ""}">
       <h3>${esc(q.title)}</h3>
@@ -234,9 +225,39 @@ function questCard(q, doneSet) {
         <button data-action="done" data-id="${q.id}">Done</button>
         <button data-action="skip" data-id="${q.id}">Skip</button>
         <button data-action="save" data-id="${q.id}">Save</button>
-        <button data-action="spin">Next Spin</button>
+        <button data-action="spin">Nochmal drehen</button>
       </div>
     </article>
+  `;
+}
+
+function wheelGradient(length) {
+  if (!length) return "";
+  const colors = ["#72f4b0", "#8ec5ff", "#bda6ff", "#7de8ff", "#6ff7d2", "#9ac1ff"];
+  const slices = Array.from({ length }, (_, i) => {
+    const start = (i * 360) / length;
+    const end = ((i + 1) * 360) / length;
+    return `${colors[i % colors.length]} ${start}deg ${end}deg`;
+  });
+  return `conic-gradient(from -90deg, ${slices.join(",")})`;
+}
+
+function wheelMarkup(pool) {
+  if (!pool.length) return `<p class="empty">Pool leer. Filter lockern oder Done einschliessen.</p>`;
+  const labelItems = pool
+    .map(
+      (q, i) => `<span class="wheel-label" style="--i:${i};--count:${pool.length};" title="${esc(q.title)}">${i + 1}</span>`
+    )
+    .join("");
+
+  return `
+    <div class="wheel-wrap">
+      <div class="pointer"></div>
+      <div class="wheel" style="background:${wheelGradient(pool.length)}; transform: rotate(${state.rouletteRotation}deg)">
+        ${labelItems}
+      </div>
+    </div>
+    <p class="muted">Segmente: ${pool.length} (je Segment = 1 Sidequest)</p>
   `;
 }
 
@@ -246,14 +267,10 @@ function rouletteView(ctx) {
   return layout(`
     ${filterPanel(ctx.tags, ctx.mergedQuests, ctx.doneSet)}
     <section class="panel">
-      <h2>Roulette</h2>
-      <button data-action="spin" ${state.rouletteSpinning ? "disabled" : ""}>Spin</button>
-      <p class="ticker">${esc(state.rouletteTicker || "")}</p>
-      ${
-        randomPool.length
-          ? `<p>Random Pool: ${randomPool.length}</p>${questCard(selected, ctx.doneSet)}`
-          : `<p class="empty">Pool leer. Filter lockern oder Done einschliessen.</p>`
-      }
+      <h2>Sidequest Roulette Picker</h2>
+      <button data-action="spin" ${state.rouletteSpinning ? "disabled" : ""}>${state.rouletteSpinning ? "Spinning..." : "Spin"}</button>
+      ${wheelMarkup(randomPool)}
+      ${questCard(selected, ctx.doneSet)}
     </section>
   `);
 }
@@ -281,10 +298,10 @@ function allQuestsView(ctx) {
   return layout(`
     ${filterPanel(ctx.tags, ctx.mergedQuests, ctx.doneSet)}
     <section class="panel">
-      <h2>All Quests</h2>
+      <h2>Alle Sidequests</h2>
       <input data-action="search-all" placeholder="Search title/tags" value="${esc(state.allQuestsSearch)}" />
       <table>
-        <thead><tr><th>Title</th><th>Category</th><th>Tags</th><th>Duration</th><th>Status</th><th>Source</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Title</th><th>Category</th><th>Tags</th><th>Dauer</th><th>Status</th><th>Source</th><th>Actions</th></tr></thead>
         <tbody>${results.map((q) => questRow(q, ctx.doneSet)).join("")}</tbody>
       </table>
     </section>
@@ -301,7 +318,7 @@ function questFormView(ctx, quest) {
         <label>Title <input required minlength="3" maxlength="80" name="title" value="${esc(quest?.title || "")}" /></label>
         <label>Description <textarea name="description">${esc(quest?.description || "")}</textarea></label>
         <label>Category
-          <select name="category">${["outdoor", "creativity", "money_business", "fitness"].map((c) => `<option ${quest?.category === c ? "selected" : ""}>${c}</option>`).join("")}</select>
+          <select name="category">${["outdoor", "creativity", "social", "mindset", "fitness", "food", "travel"].map((c) => `<option ${quest?.category === c ? "selected" : ""}>${c}</option>`).join("")}</select>
         </label>
         <label>Tags (comma) <input name="tags" value="${esc((quest?.tags || []).join(","))}" /></label>
         <label>Duration min <input type="number" name="duration_min" min="1" value="${quest?.duration_min || 10}" /></label>
@@ -333,7 +350,7 @@ function historyView(ctx) {
     <section class="panel">
       <h2>History</h2>
       <select data-action="history-filter">
-        ${["all", "done", "skipped"].map((s) => `<option ${state.historyStatus === s ? "selected" : ""}>${s}</option>`).join("")}
+        ${["all", "done", "skip"].map((s) => `<option ${state.historyStatus === s ? "selected" : ""}>${s}</option>`).join("")}
       </select>
       <table><thead><tr><th>Quest</th><th>Status</th><th>Date</th></tr></thead><tbody>${rows}</tbody></table>
     </section>
@@ -407,12 +424,20 @@ function upsertEdit(id, payload) {
   setStorePatch({ edits });
 }
 
+function rotateToWinner(pool, winnerIndex) {
+  const segmentAngle = 360 / pool.length;
+  const targetCenter = winnerIndex * segmentAngle + segmentAngle / 2;
+  const current = ((state.rouletteRotation % 360) + 360) % 360;
+  const desired = (360 - targetCenter) % 360;
+  const delta = (desired - current + 360) % 360;
+  state.rouletteRotation += 2160 + delta;
+}
+
 function attachEvents(ctx) {
   document.querySelectorAll("[data-tab]").forEach((btn) =>
     btn.addEventListener("click", () => {
       state.activeTab = btn.dataset.tab;
       if (state.activeTab !== "create") state.editingQuestId = null;
-      if (state.activeTab === "roulette") state.filters.include_done = true;
       render();
     })
   );
@@ -445,23 +470,17 @@ function attachEvents(ctx) {
   document.querySelectorAll("[data-action='spin']").forEach((btn) =>
     btn.addEventListener("click", async () => {
       const pool = ctx.filteredQuests.filter((q) => !ctx.store.settings.exclude_done_from_random || !ctx.doneSet.has(q.id));
-      if (!pool.length) return;
+      if (!pool.length || state.rouletteSpinning) return;
+
+      const winner = randomFrom(pool);
+      const winnerIndex = pool.findIndex((q) => q.id === winner.id);
       state.rouletteSpinning = true;
-      let ticks = 0;
-      await new Promise((resolve) => {
-        const iv = setInterval(() => {
-          state.rouletteTicker = randomFrom(pool).title;
-          render();
-          ticks += 1;
-          if (ticks > 15) {
-            clearInterval(iv);
-            resolve();
-          }
-        }, 90);
-      });
-      state.rouletteSelectionId = randomFrom(pool).id;
+      rotateToWinner(pool, winnerIndex);
+      render();
+
+      await new Promise((resolve) => setTimeout(resolve, 4200));
+      state.rouletteSelectionId = winner.id;
       state.rouletteSpinning = false;
-      state.rouletteTicker = "";
       render();
     })
   );
@@ -516,6 +535,7 @@ function attachEvents(ctx) {
       Object.values(STORAGE_KEYS).forEach((k) => localStorage.removeItem(k));
       state.filters = defaultFilters(true);
       state.rouletteSelectionId = null;
+      state.rouletteRotation = 0;
       render();
     })
   );
