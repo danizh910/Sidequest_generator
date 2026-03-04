@@ -279,6 +279,20 @@ function buildDrum(pool) {
   return true;
 }
 
+/** Wait until all drum images are loaded, so roulette.js has stable row heights */
+function waitForDrumImages() {
+  const imgs = Array.from(document.querySelectorAll('#roulette-drum img'));
+  if(!imgs.length) return Promise.resolve();
+
+  return Promise.all(imgs.map(img => {
+    if(img.complete && img.naturalHeight>0) return Promise.resolve();
+    return new Promise(resolve => {
+      img.addEventListener('load', resolve, { once:true });
+      img.addEventListener('error', resolve, { once:true });
+    });
+  }));
+}
+
 /** Init + start roulette.js on the drum, resolve when stopped */
 function spinDrum(pool, winnerIndex) {
   return new Promise(resolve=>{
@@ -291,10 +305,10 @@ function spinDrum(pool, winnerIndex) {
       stopImageNumber:  winnerIndex,
       startCallback:    function(){},
       slowDownCallback: function(){},
-      stopCallback:     function(){
-        // plugin callback element can mismatch with cloned nodes; trust the pre-selected winner
-        const id = pool[winnerIndex] && pool[winnerIndex].id;
-        resolve(id || null);
+      stopCallback:     function($img){
+        const idFromDrum = $img && $img.attr && $img.attr('data-id');
+        const idFromIndex = pool[winnerIndex] && pool[winnerIndex].id;
+        resolve(idFromDrum || idFromIndex || null);
       },
     });
 
@@ -680,8 +694,9 @@ function attachEvents(c){
     const ok=buildDrum(pool);
     if(!ok){S.spinning=false;render();return;}
 
-    // Give DOM a tick to paint the images, then init plugin
+    // Wait until SVG rows are loaded, then init plugin
     setTimeout(async()=>{
+      await waitForDrumImages();
       const resolvedId=await spinDrum(pool,winnerIndex);
       S.winId = resolvedId || winner.id;
       S.spinning=false;
