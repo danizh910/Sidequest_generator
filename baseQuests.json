@@ -1,86 +1,667 @@
 [
   {
     "id": "base-1",
-    "title": "Sunrise Walk & Photo",
-    "description": "Mache einen 20-minuetigen Spaziergang und nimm 3 interessante Fotos auf.",
-    "category": "outdoor",
-    "tags": ["nature", "photo", "morning"],
-    "duration_min": 20,
-    "duration_max": 35,
+    "title": "Take a train to a random city and figure it out when you get there",
+    "description": "Travel & Adventure challenge.",
+    "category": "travel",
+    "tags": [
+      "spontaneous",
+      "city",
+      "explore"
+    ],
+    "duration_min": 240,
+    "duration_max": 720,
     "setting": "outdoor",
-    "group_mode": "both",
-    "adventure_level": 2,
-    "equipment": ["smartphone"],
-    "constraints": { "budget_max_chf": 0, "weather_required": "dry" },
+    "group_mode": "solo",
+    "adventure_level": 5,
+    "equipment": [
+      "phone",
+      "ticket"
+    ],
+    "constraints": {
+      "budget_max_chf": 180,
+      "weather_required": "any"
+    },
     "instructions": [
-      "Zieh bequeme Schuhe an.",
-      "Gehe in deiner Umgebung eine neue Route.",
-      "Nimm drei Fotos von Dingen, die dir auffallen."
+      "Pick the next available train to a city you do not know well.",
+      "When you arrive, choose one place to explore and one local meal.",
+      "Document three moments that surprised you."
     ],
     "created_at": "2026-01-01T10:00:00.000Z",
     "source": "base"
   },
   {
     "id": "base-2",
-    "title": "Mini-Budget-Side-Hustle-Idee",
-    "description": "Skizziere in 30 Minuten eine kleine Geschaeftsidee mit maximal 20 CHF Startbudget.",
-    "category": "money_business",
-    "tags": ["business", "brainstorm", "budget"],
-    "duration_min": 25,
-    "duration_max": 40,
-    "setting": "indoor",
-    "group_mode": "solo",
-    "adventure_level": 3,
-    "equipment": ["notebook", "pen"],
-    "constraints": { "budget_max_chf": 20, "quiet_ok": true, "weather_required": "none" },
-    "instructions": [
-      "Waehle ein kleines Problem aus dem Alltag.",
-      "Notiere Loesung, Zielgruppe und Einnahme-Idee.",
-      "Definiere den kleinsten naechsten Schritt fuer morgen."
+    "title": "Sleep under the stars somewhere you’ve never been",
+    "description": "Travel & Adventure challenge.",
+    "category": "outdoor",
+    "tags": [
+      "night",
+      "nature",
+      "brave"
     ],
-    "created_at": "2026-01-02T08:00:00.000Z",
+    "duration_min": 360,
+    "duration_max": 720,
+    "setting": "outdoor",
+    "group_mode": "both",
+    "adventure_level": 4,
+    "equipment": [
+      "sleeping bag"
+    ],
+    "constraints": {
+      "budget_max_chf": 80,
+      "weather_required": "dry"
+    },
+    "instructions": [
+      "Find a legal and safe outdoor spot.",
+      "Pack only essentials for one night.",
+      "Watch the sky for 15 minutes without your phone."
+    ],
+    "created_at": "2026-01-02T10:00:00.000Z",
     "source": "base"
   },
   {
     "id": "base-3",
-    "title": "7-Minuten Fitness Circuit",
-    "description": "Ein kurzer, intensiver Home-Workout-Zirkel.",
-    "category": "fitness",
-    "tags": ["workout", "quick", "energy"],
-    "duration_min": 7,
-    "duration_max": 15,
-    "setting": "both",
-    "group_mode": "both",
-    "adventure_level": 2,
-    "equipment": ["mat"],
-    "constraints": { "quiet_ok": false, "weather_required": "none" },
-    "instructions": [
-      "5 Uebungen waehlen (z.B. Squats, Pushups, Plank, Lunges, Burpees).",
-      "Je 40 Sekunden Belastung + 20 Sekunden Pause.",
-      "1 Minute Cooldown nicht vergessen."
+    "title": "Visit a town with a population under 500",
+    "description": "Travel & Adventure challenge.",
+    "category": "travel",
+    "tags": [
+      "roadtrip",
+      "smalltown",
+      "curious"
     ],
-    "created_at": "2026-01-03T09:30:00.000Z",
+    "duration_min": 180,
+    "duration_max": 480,
+    "setting": "outdoor",
+    "group_mode": "both",
+    "adventure_level": 3,
+    "equipment": [
+      "phone"
+    ],
+    "constraints": {
+      "budget_max_chf": 50,
+      "weather_required": "any"
+    },
+    "instructions": [
+      "Pick a tiny town nearby.",
+      "Talk to one local person.",
+      "Write down what felt different from your city."
+    ],
+    "created_at": "2026-01-03T10:00:00.000Z",
     "source": "base"
   },
   {
     "id": "base-4",
-    "title": "Creative Remix Challenge",
-    "description": "Remixe einen bekannten Song, ein Meme oder eine Story auf deine Art.",
+    "title": "Eat alone at a fancy restaurant and enjoy every second of it",
+    "description": "Social & Human Connection challenge.",
+    "category": "food",
+    "tags": [
+      "comfortzone",
+      "confidence",
+      "food"
+    ],
+    "duration_min": 90,
+    "duration_max": 180,
+    "setting": "indoor",
+    "group_mode": "solo",
+    "adventure_level": 3,
+    "equipment": [
+      "wallet"
+    ],
+    "constraints": {
+      "budget_max_chf": 120,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Book a table for one.",
+      "Order slowly and stay present.",
+      "End the night by writing one thing you learned about yourself."
+    ],
+    "created_at": "2026-01-04T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-5",
+    "title": "Get on a flight with only a carry-on and no hotel booked",
+    "description": "Travel & Adventure challenge.",
+    "category": "travel",
+    "tags": [
+      "risk",
+      "spontaneous",
+      "minimal"
+    ],
+    "duration_min": 720,
+    "duration_max": 2880,
+    "setting": "both",
+    "group_mode": "solo",
+    "adventure_level": 5,
+    "equipment": [
+      "passport",
+      "carry-on"
+    ],
+    "constraints": {
+      "budget_max_chf": 600,
+      "weather_required": "any"
+    },
+    "instructions": [
+      "Choose a destination with easy arrival options.",
+      "Plan only first-night safety basics.",
+      "Let day one be guided by local recommendations."
+    ],
+    "created_at": "2026-01-05T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-6",
+    "title": "Find the highest point in your city and watch the sunset from there",
+    "description": "Travel & Adventure challenge.",
+    "category": "outdoor",
+    "tags": [
+      "sunset",
+      "city",
+      "reflection"
+    ],
+    "duration_min": 60,
+    "duration_max": 150,
+    "setting": "outdoor",
+    "group_mode": "both",
+    "adventure_level": 2,
+    "equipment": [
+      "comfortable shoes"
+    ],
+    "constraints": {
+      "budget_max_chf": 0,
+      "weather_required": "dry"
+    },
+    "instructions": [
+      "Locate the highest accessible point.",
+      "Arrive 20 minutes before sunset.",
+      "Watch in silence until the last light fades."
+    ],
+    "created_at": "2026-01-06T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-7",
+    "title": "Walk into a museum you’ve never noticed before",
+    "description": "Creative challenge.",
     "category": "creativity",
-    "tags": ["creative", "art", "fun"],
-    "duration_min": 30,
-    "duration_max": 60,
+    "tags": [
+      "culture",
+      "museum",
+      "curious"
+    ],
+    "duration_min": 60,
+    "duration_max": 180,
     "setting": "indoor",
     "group_mode": "both",
-    "adventure_level": 4,
-    "equipment": ["paper", "smartphone"],
-    "constraints": { "quiet_ok": true, "weather_required": "none" },
-    "instructions": [
-      "Waehle ein Ausgangsmaterial.",
-      "Aendere Stil, Ton oder Medium komplett.",
-      "Zeige es einer Person oder poste es privat fuer Feedback."
+    "adventure_level": 2,
+    "equipment": [
+      "ticket"
     ],
-    "created_at": "2026-01-04T12:00:00.000Z",
+    "constraints": {
+      "budget_max_chf": 25,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Choose a museum you have ignored.",
+      "Spend at least 30 minutes on one floor.",
+      "Take one note about a piece that stayed with you."
+    ],
+    "created_at": "2026-01-07T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-8",
+    "title": "Spend a full day in a neighborhood you always drive past",
+    "description": "Travel & Adventure challenge.",
+    "category": "travel",
+    "tags": [
+      "local",
+      "deepdive",
+      "urban"
+    ],
+    "duration_min": 300,
+    "duration_max": 720,
+    "setting": "both",
+    "group_mode": "both",
+    "adventure_level": 3,
+    "equipment": [
+      "phone"
+    ],
+    "constraints": {
+      "budget_max_chf": 40,
+      "weather_required": "any"
+    },
+    "instructions": [
+      "Pick one neighborhood and stay there all day.",
+      "Try one café, one walk, and one random shop.",
+      "Leave with a mini-guide for a friend."
+    ],
+    "created_at": "2026-01-08T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-9",
+    "title": "Strike up a real conversation with a stranger at a café and actually listen",
+    "description": "Social & Human Connection challenge.",
+    "category": "social",
+    "tags": [
+      "social",
+      "listening",
+      "human"
+    ],
+    "duration_min": 15,
+    "duration_max": 45,
+    "setting": "both",
+    "group_mode": "solo",
+    "adventure_level": 3,
+    "equipment": [
+      "none"
+    ],
+    "constraints": {
+      "budget_max_chf": 10,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Start with a simple warm question.",
+      "Listen more than you speak.",
+      "Thank them for the conversation."
+    ],
+    "created_at": "2026-01-09T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-10",
+    "title": "Write a letter to someone who changed your life and actually send it",
+    "description": "Social & Human Connection challenge.",
+    "category": "social",
+    "tags": [
+      "gratitude",
+      "letter",
+      "connection"
+    ],
+    "duration_min": 20,
+    "duration_max": 60,
+    "setting": "indoor",
+    "group_mode": "solo",
+    "adventure_level": 2,
+    "equipment": [
+      "paper",
+      "envelope"
+    ],
+    "constraints": {
+      "budget_max_chf": 5,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Write honestly and specifically.",
+      "Do not over-edit.",
+      "Send it the same day."
+    ],
+    "created_at": "2026-01-10T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-11",
+    "title": "Attend an event where you know absolutely no one",
+    "description": "Social & Human Connection challenge.",
+    "category": "social",
+    "tags": [
+      "network",
+      "courage",
+      "event"
+    ],
+    "duration_min": 90,
+    "duration_max": 240,
+    "setting": "both",
+    "group_mode": "solo",
+    "adventure_level": 4,
+    "equipment": [
+      "phone"
+    ],
+    "constraints": {
+      "budget_max_chf": 35,
+      "weather_required": "any"
+    },
+    "instructions": [
+      "Find an open event in your city.",
+      "Introduce yourself to at least two people.",
+      "Stay for one full hour minimum."
+    ],
+    "created_at": "2026-01-11T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-12",
+    "title": "Compliment five strangers in one day and mean every word",
+    "description": "Social & Human Connection challenge.",
+    "category": "social",
+    "tags": [
+      "kindness",
+      "confidence",
+      "social"
+    ],
+    "duration_min": 30,
+    "duration_max": 180,
+    "setting": "both",
+    "group_mode": "solo",
+    "adventure_level": 3,
+    "equipment": [
+      "none"
+    ],
+    "constraints": {
+      "budget_max_chf": 0,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Give specific and respectful compliments.",
+      "Focus on sincerity, not speed.",
+      "Reflect on how people reacted."
+    ],
+    "created_at": "2026-01-12T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-13",
+    "title": "Call an old friend you haven’t spoken to in years with no agenda",
+    "description": "Social & Human Connection challenge.",
+    "category": "social",
+    "tags": [
+      "friendship",
+      "reconnect",
+      "phone"
+    ],
+    "duration_min": 20,
+    "duration_max": 50,
+    "setting": "indoor",
+    "group_mode": "solo",
+    "adventure_level": 2,
+    "equipment": [
+      "phone"
+    ],
+    "constraints": {
+      "budget_max_chf": 0,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Pick one person and call, not text.",
+      "Ask about their life and listen deeply.",
+      "End with one honest memory you still value."
+    ],
+    "created_at": "2026-01-13T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-14",
+    "title": "Cook a full meal for someone who needs it right now",
+    "description": "Social & Human Connection challenge.",
+    "category": "social",
+    "tags": [
+      "care",
+      "food",
+      "service"
+    ],
+    "duration_min": 60,
+    "duration_max": 150,
+    "setting": "indoor",
+    "group_mode": "both",
+    "adventure_level": 3,
+    "equipment": [
+      "kitchen"
+    ],
+    "constraints": {
+      "budget_max_chf": 30,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Choose someone who would genuinely benefit.",
+      "Cook a balanced simple meal.",
+      "Deliver it with a short, kind note."
+    ],
+    "created_at": "2026-01-14T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-15",
+    "title": "Ask an elderly person about their biggest regret and listen without your phone",
+    "description": "Social & Human Connection challenge.",
+    "category": "social",
+    "tags": [
+      "wisdom",
+      "listening",
+      "presence"
+    ],
+    "duration_min": 30,
+    "duration_max": 90,
+    "setting": "both",
+    "group_mode": "solo",
+    "adventure_level": 3,
+    "equipment": [
+      "none"
+    ],
+    "constraints": {
+      "budget_max_chf": 0,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Ask with empathy and respect.",
+      "Keep your phone away completely.",
+      "Write down one lesson afterwards."
+    ],
+    "created_at": "2026-01-15T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-16",
+    "title": "Start a journal and write only in third person",
+    "description": "Creative challenge.",
+    "category": "mindset",
+    "tags": [
+      "journal",
+      "mindset",
+      "reflection"
+    ],
+    "duration_min": 15,
+    "duration_max": 30,
+    "setting": "indoor",
+    "group_mode": "solo",
+    "adventure_level": 2,
+    "equipment": [
+      "notebook"
+    ],
+    "constraints": {
+      "budget_max_chf": 0,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Describe your day as if you are observing yourself.",
+      "Keep it short but specific.",
+      "Repeat for three consecutive days."
+    ],
+    "created_at": "2026-01-16T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-17",
+    "title": "Take 30 photos in one hour with no filter and no retakes",
+    "description": "Creative challenge.",
+    "category": "creativity",
+    "tags": [
+      "photo",
+      "creative",
+      "challenge"
+    ],
+    "duration_min": 60,
+    "duration_max": 90,
+    "setting": "both",
+    "group_mode": "solo",
+    "adventure_level": 3,
+    "equipment": [
+      "phone"
+    ],
+    "constraints": {
+      "budget_max_chf": 0,
+      "weather_required": "any"
+    },
+    "instructions": [
+      "Set a one-hour timer.",
+      "Shoot 30 unique frames only once each.",
+      "Pick your top three and explain why."
+    ],
+    "created_at": "2026-01-17T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-18",
+    "title": "Write a short story about your life but set it 200 years ago",
+    "description": "Creative challenge.",
+    "category": "creativity",
+    "tags": [
+      "story",
+      "imagination",
+      "writing"
+    ],
+    "duration_min": 45,
+    "duration_max": 120,
+    "setting": "indoor",
+    "group_mode": "solo",
+    "adventure_level": 4,
+    "equipment": [
+      "notebook",
+      "laptop"
+    ],
+    "constraints": {
+      "budget_max_chf": 0,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Pick one real event from your life.",
+      "Translate it into a different historical setting.",
+      "Finish with one fictional twist."
+    ],
+    "created_at": "2026-01-18T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-19",
+    "title": "Paint or draw something terrible and hang it on your wall anyway",
+    "description": "Creative challenge.",
+    "category": "creativity",
+    "tags": [
+      "art",
+      "imperfection",
+      "courage"
+    ],
+    "duration_min": 30,
+    "duration_max": 90,
+    "setting": "indoor",
+    "group_mode": "solo",
+    "adventure_level": 2,
+    "equipment": [
+      "paper",
+      "colors"
+    ],
+    "constraints": {
+      "budget_max_chf": 10,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Create quickly without judging.",
+      "Sign and date it.",
+      "Hang it where you can see it for a week."
+    ],
+    "created_at": "2026-01-19T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-20",
+    "title": "Record yourself talking for 10 minutes about anything and play it back",
+    "description": "Creative challenge.",
+    "category": "mindset",
+    "tags": [
+      "selfawareness",
+      "voice",
+      "growth"
+    ],
+    "duration_min": 15,
+    "duration_max": 25,
+    "setting": "indoor",
+    "group_mode": "solo",
+    "adventure_level": 3,
+    "equipment": [
+      "phone"
+    ],
+    "constraints": {
+      "budget_max_chf": 0,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Set a 10-minute recording.",
+      "Speak freely without stopping.",
+      "Replay once and note one improvement."
+    ],
+    "created_at": "2026-01-20T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-21",
+    "title": "Rearrange your entire living space in one afternoon",
+    "description": "Creative challenge.",
+    "category": "mindset",
+    "tags": [
+      "home",
+      "reset",
+      "energy"
+    ],
+    "duration_min": 120,
+    "duration_max": 240,
+    "setting": "indoor",
+    "group_mode": "both",
+    "adventure_level": 3,
+    "equipment": [
+      "none"
+    ],
+    "constraints": {
+      "budget_max_chf": 0,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Choose a start and end time.",
+      "Move major pieces first.",
+      "Finish by removing at least five unnecessary items."
+    ],
+    "created_at": "2026-01-21T10:00:00.000Z",
+    "source": "base"
+  },
+  {
+    "id": "base-22",
+    "title": "Make a playlist for a version of yourself that doesn’t exist yet",
+    "description": "Creative challenge.",
+    "category": "creativity",
+    "tags": [
+      "music",
+      "future-self",
+      "vision"
+    ],
+    "duration_min": 25,
+    "duration_max": 60,
+    "setting": "indoor",
+    "group_mode": "solo",
+    "adventure_level": 2,
+    "equipment": [
+      "music app"
+    ],
+    "constraints": {
+      "budget_max_chf": 0,
+      "weather_required": "none"
+    },
+    "instructions": [
+      "Define the future version in one sentence.",
+      "Select 12 songs that match that identity.",
+      "Listen once and write down the feeling."
+    ],
+    "created_at": "2026-01-22T10:00:00.000Z",
     "source": "base"
   }
 ]
