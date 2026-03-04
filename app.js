@@ -119,10 +119,6 @@ function sortedSuggestions(filtered, doneSet) {
   });
 }
 
-function randomFrom(array) {
-  return array[Math.floor(Math.random() * array.length)];
-}
-
 function esc(str = "") {
   return String(str)
     .replaceAll("&", "&amp;")
@@ -424,13 +420,11 @@ function upsertEdit(id, payload) {
   setStorePatch({ edits });
 }
 
-function rotateToWinner(pool, winnerIndex) {
+function pickWinnerFromRotation(pool, rotation) {
   const segmentAngle = 360 / pool.length;
-  const targetCenter = winnerIndex * segmentAngle + segmentAngle / 2;
-  const current = ((state.rouletteRotation % 360) + 360) % 360;
-  const desired = (360 - targetCenter) % 360;
-  const delta = (desired - current + 360) % 360;
-  state.rouletteRotation += 2160 + delta;
+  const normalized = ((360 - (rotation % 360)) + 360) % 360;
+  const winnerIndex = Math.floor(normalized / segmentAngle) % pool.length;
+  return pool[winnerIndex];
 }
 
 function attachEvents(ctx) {
@@ -472,16 +466,21 @@ function attachEvents(ctx) {
       const pool = ctx.filteredQuests.filter((q) => !ctx.store.settings.exclude_done_from_random || !ctx.doneSet.has(q.id));
       if (!pool.length || state.rouletteSpinning) return;
 
-      const winner = randomFrom(pool);
-      const winnerIndex = pool.findIndex((q) => q.id === winner.id);
       state.rouletteSpinning = true;
-      rotateToWinner(pool, winnerIndex);
+      state.rouletteRotation += 2160 + Math.random() * 360;
       render();
 
-      await new Promise((resolve) => setTimeout(resolve, 4200));
-      state.rouletteSelectionId = winner.id;
-      state.rouletteSpinning = false;
-      render();
+      const finishSpin = () => {
+        if (!state.rouletteSpinning) return;
+        const winner = pickWinnerFromRotation(pool, state.rouletteRotation);
+        state.rouletteSelectionId = winner?.id || null;
+        state.rouletteSpinning = false;
+        render();
+      };
+
+      const wheelEl = document.querySelector(".wheel");
+      wheelEl?.addEventListener("transitionend", finishSpin, { once: true });
+      setTimeout(finishSpin, 4300);
     })
   );
 
