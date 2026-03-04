@@ -297,7 +297,7 @@ function waitForDrumImages() {
 function spinDrum(pool, winnerIndex) {
   return new Promise(resolve=>{
     const $drum=$('#roulette-drum');
-    if(!$drum.length){ resolve(null); return; }
+    if(!$drum.length){ resolve(false); return; }
 
     $drum.roulette({
       speed:            14,
@@ -305,10 +305,8 @@ function spinDrum(pool, winnerIndex) {
       stopImageNumber:  winnerIndex,
       startCallback:    function(){},
       slowDownCallback: function(){},
-      stopCallback:     function($img){
-        const idFromDrum = $img && $img.attr && $img.attr('data-id');
-        const idFromIndex = pool[winnerIndex] && pool[winnerIndex].id;
-        resolve(idFromDrum || idFromIndex || null);
+      stopCallback:     function(){
+        resolve(true);
       },
     });
 
@@ -697,8 +695,8 @@ function attachEvents(c){
     // Wait until SVG rows are loaded, then init plugin
     setTimeout(async()=>{
       await waitForDrumImages();
-      const resolvedId=await spinDrum(pool,winnerIndex);
-      S.winId = resolvedId || winner.id;
+      await spinDrum(pool,winnerIndex);
+      S.winId = winner.id;
       S.spinning=false;
       render();
     },60);
