@@ -52,8 +52,10 @@ const LANG = {
       { k:'show_done_as_grey',        l:'Erledigte ausgegraut',    d:'Erledigte Quests werden ausgegraut dargestellt' },
     ],
     resetBtn: '⚠ Alles zurücksetzen',
+    resetProgressBtn: 'Fortschritt zurücksetzen',
     confirmDelete: 'Quest wirklich löschen?',
     confirmReset: 'Wirklich alles zurücksetzen?',
+    confirmProgressReset: 'Alle erledigten/übersprungenen Sidequests zurücksetzen?',
     errTitle: 'Titel muss mindestens 3 Zeichen haben.',
     errDur: 'Min-Dauer muss ≤ Max-Dauer sein.',
     errSteps: 'Mindestens 1 Schritt erforderlich.',
@@ -104,8 +106,10 @@ const LANG = {
       { k:'show_done_as_grey',        l:'Grey out completed', d:'Completed quests are shown greyed out' },
     ],
     resetBtn: '⚠ Reset all data',
+    resetProgressBtn: 'Reset progress',
     confirmDelete: 'Really delete this quest?',
     confirmReset: 'Really reset all data?',
+    confirmProgressReset: 'Reset all done/skipped sidequests?',
     errTitle: 'Title must be at least 3 characters.',
     errDur: 'Min duration must be ≤ max duration.',
     errSteps: 'At least 1 step is required.',
@@ -287,10 +291,10 @@ function spinDrum(pool, winnerIndex) {
       stopImageNumber:  winnerIndex,
       startCallback:    function(){},
       slowDownCallback: function(){},
-      stopCallback:     function($el){
-        // $el is the jQuery img element that stopped
-        const id = $($el).data('id') || (pool[winnerIndex]&&pool[winnerIndex].id);
-        resolve(id);
+      stopCallback:     function(){
+        // plugin callback element can mismatch with cloned nodes; trust the pre-selected winner
+        const id = pool[winnerIndex] && pool[winnerIndex].id;
+        resolve(id || null);
       },
     });
 
@@ -413,6 +417,7 @@ function viewPicker(c){
           <div id="roulette-drum"></div>
         </div>
         <p class="drum-hint">${tr.drumHint(pool.length)}</p>
+        <button class="btn btn-ghost btn-sm" data-action="reset-progress">${tr.resetProgressBtn}</button>
       </div>
       ${renderQuestCard(win,c.dset)}
     </div>
@@ -732,6 +737,14 @@ function attachEvents(c){
     Object.values(SK).forEach(k=>localStorage.removeItem(k));
     S.filters={cats:[],dur:'any',setting:'any',group:'any',lvl:1,done:true};
     S.winId=null; S.spinning=false;
+    render();
+  }));
+
+  /* Reset done/skipped progress only */
+  document.querySelectorAll('[data-action="reset-progress"]').forEach(b=>b.addEventListener('click',()=>{
+    if(!confirm(t().confirmProgressReset))return;
+    patchStore({history:[]});
+    S.winId=null;
     render();
   }));
 
