@@ -317,6 +317,12 @@ textarea { min-height: 90px; resize: vertical; }
   gap: 1.4rem;
 }
 
+.picker-reset-wrap {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+}
+
 /* Big spin button */
 .btn-spin-big {
   position: relative;
