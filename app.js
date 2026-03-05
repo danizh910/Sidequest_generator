@@ -429,9 +429,11 @@ function viewPicker(c){
           <div id="roulette-drum"></div>
         </div>
         <p class="drum-hint">${tr.drumHint(pool.length)}</p>
-        <button class="btn btn-ghost btn-sm" data-action="reset-progress">${tr.resetProgressBtn}</button>
       </div>
       ${renderQuestCard(win,c.dset)}
+      <div class="picker-reset-wrap">
+        <button class="btn btn-ghost btn-sm" data-action="reset-progress">${tr.resetProgressBtn}</button>
+      </div>
     </div>
   `);
 }
