@@ -682,8 +682,11 @@ function attachEvents(c){
     const pool=c.filtered.filter(q=>!c.store.settings.exclude_done_from_random||!c.dset.has(q.id));
     if(!pool.length||S.spinning)return;
 
-    const winnerIndex=Math.floor(Math.random()*pool.length);
-    const winner=pool[winnerIndex];
+    // Avoid repeating the currently shown winner when alternatives exist.
+    const eligible = (S.winId && pool.length>1) ? pool.filter(q=>q.id!==S.winId) : pool;
+    const winnerIndexInEligible=Math.floor(Math.random()*eligible.length);
+    const winner=eligible[winnerIndexInEligible];
+    const winnerIndex=pool.findIndex(q=>q.id===winner.id);
 
     S.spinning=true;
     render(); // show spinning state
