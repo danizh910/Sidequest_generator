@@ -30,11 +30,12 @@ body {
   color: var(--txt);
   min-height: 100dvh;
   overflow-x: hidden;
-  /* subtle noise grain */
+  /* smooth dark backdrop (without tiled noise artifacts) */
   background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E"),
-    radial-gradient(ellipse 70vw 50vh at 15% 0%, rgba(200,255,87,.055) 0%, transparent 55%),
-    radial-gradient(ellipse 50vw 40vh at 90% 100%, rgba(87,255,216,.04) 0%, transparent 55%);
+    radial-gradient(ellipse 70vw 50vh at 15% 0%, rgba(200,255,87,.055) 0%, transparent 58%),
+    radial-gradient(ellipse 50vw 40vh at 90% 100%, rgba(87,255,216,.035) 0%, transparent 60%),
+    linear-gradient(180deg, #141821 0%, #13151a 60%, #111319 100%);
+  background-attachment: fixed;
 }
 
 /* ─── LAYOUT ─── */
