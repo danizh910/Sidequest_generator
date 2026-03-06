@@ -432,6 +432,8 @@ function viewPicker(c){
   const tr=t();
   const pool=c.filtered.filter(q=>!c.store.settings.exclude_done_from_random||!c.dset.has(q.id));
   const win=c.all.find(q=>q.id===S.winId);
+  // Show the drum only while spinning or after the first spin
+  const showDrum = S.spinning || !!S.winId;
   return layout(`
     ${renderFilters(c)}
     <div class="panel">
@@ -443,12 +445,19 @@ function viewPicker(c){
         <button class="btn-spin-big${S.spinning?' is-spinning':''}" id="spin-btn"${S.spinning?' disabled':''}>
           <span>${S.spinning?tr.spinning:tr.spinBtn}</span>
         </button>
+        ${showDrum ? `
         <div class="drum-outer">
           <div class="drum-clip">
             <div class="drum-highlight"></div>
           </div>
         </div>
         <p class="drum-hint">${tr.drumHint(pool.length)}</p>
+        ` : `
+        <div class="drum-cta">
+          <span class="drum-cta-arrow">↑</span>
+          <span class="drum-cta-text">${tr.spinFirst}</span>
+        </div>
+        `}
       </div>
       ${renderQuestCard(win,c.dset)}
       <div class="picker-reset-wrap">
@@ -653,9 +662,9 @@ function render(){
   // Rebuild drum after render (only on picker tab, not while spinning)
   if(S.tab==='roulette' && !S.spinning){
     const pool=c.filtered.filter(q=>!c.store.settings.exclude_done_from_random||!c.dset.has(q.id));
-    buildDrum(pool);
-    // If there's a winner, snap drum to show it centered (no animation)
+    // Only build + show the drum if we already have a winner (= at least one spin happened)
     if(S.winId && pool.length){
+      buildDrum(pool);
       const winnerIndex = pool.findIndex(q=>q.id===S.winId);
       if(winnerIndex >= 0) snapDrum(pool, winnerIndex);
     }
