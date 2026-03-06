@@ -320,6 +320,19 @@ function spinDrum(pool, winnerIndex) {
     requestAnimationFrame(frame);
   });
 }
+/** Instantly position drum so winnerIndex is centered — no animation */
+function snapDrum(pool, winnerIndex) {
+  const clip  = document.querySelector('.drum-clip');
+  const strip = clip && clip.querySelector('.drum-strip');
+  if (!strip) return;
+  const reps    = Math.round(strip.children.length / pool.length);
+  const oneLoop = pool.length * ITEM_H;
+  const targetRep = Math.floor(reps / 2); // middle rep
+  const targetY   = targetRep * oneLoop + winnerIndex * ITEM_H - ITEM_H;
+  strip.style.transition = 'none';
+  strip.style.transform  = `translateY(-${targetY}px)`;
+}
+
 /* ──────────────────────────────────────────────
    RENDER HELPERS
 ────────────────────────────────────────────── */
@@ -637,10 +650,15 @@ function render(){
   app.innerHTML=html;
   attachEvents(c);
 
-  // Rebuild drum after render (only on picker tab)
+  // Rebuild drum after render (only on picker tab, not while spinning)
   if(S.tab==='roulette' && !S.spinning){
     const pool=c.filtered.filter(q=>!c.store.settings.exclude_done_from_random||!c.dset.has(q.id));
     buildDrum(pool);
+    // If there's a winner, snap drum to show it centered (no animation)
+    if(S.winId && pool.length){
+      const winnerIndex = pool.findIndex(q=>q.id===S.winId);
+      if(winnerIndex >= 0) snapDrum(pool, winnerIndex);
+    }
   }
 }
 
