@@ -261,53 +261,89 @@ function questToSVG(q) {
   return 'data:image/svg+xml,'+svg.replace(/\n\s*/g,' ');
 }
 
-/** Rebuild the drum DOM with fresh pool, then call onReady */
+/**
+ * Rebuild the drum by REPLACING the entire #roulette-drum element.
+ *
+ * Why replace instead of empty():
+ *   roulette.js stores its state (imageHeight, totalHeight, $images, …)
+ *   inside a Roulette closure that is attached via $.data().
+ *   Even after removeData() the *new* Roulette instance still sets
+ *   p.$images on the *first* init and caches p.imageHeight via an
+ *   img.load() trick.  When the container is simply emptied the new
+ *   images are appended AFTER init has already run, so the plugin
+ *   never re-measures them → stopImageNumber always lands on slot 0.
+ *
+ *   Replacing the element gives roulette.js a completely fresh DOM
+ *   node with no jQuery data attached, so init() runs from scratch
+ *   every single time and measures the correct imageHeight.
+ */
 function buildDrum(pool) {
-  const $c = $('#roulette-drum');
-  // Remove old roulette plugin data to force fresh init
-  $c.removeData('plugin_roulette');
-  $c.empty().show();
+  const $outer = $('.drum-outer');
+  if(!$outer.length) return false;
 
   if(!pool.length){
-    $c.closest('.drum-outer').replaceWith(`<div class="drum-outer"><p class="drum-empty">${t().poolEmpty}</p></div>`);
+    $outer.html(`<p class="drum-empty">${t().poolEmpty}</p>`);
     return false;
   }
 
-  pool.forEach(q=>{
-    $c.append($('<img>').attr('src', questToSVG(q)).attr('data-id', q.id).attr('alt', qTitle(q)));
+  // Build a brand-new element — roulette.js will have zero cached state
+  const $newDrum = $('<div id="roulette-drum" style="display:none;"></div>');
+  pool.forEach(q => {
+    $newDrum.append(
+      $('<img>')
+        .attr('src', questToSVG(q))
+        .attr('data-id', q.id)
+        .attr('alt', qTitle(q))
+    );
   });
+
+  // Replace: remove old highlight + old drum, insert highlight + fresh drum
+  $outer.html('<div class="drum-highlight"></div>');
+  $outer.append($newDrum);
   return true;
 }
 
-/** Wait until all drum images are loaded, so roulette.js has stable row heights */
+/**
+ * Wait until every img inside the drum has loaded (naturalHeight > 0).
+ * roulette.js measures imageHeight from the first img — if it hasn't
+ * loaded yet the plugin sets imageHeight = 0 and the drum never scrolls.
+ */
 function waitForDrumImages() {
-  const imgs = Array.from(document.querySelectorAll('#roulette-drum img'));
-  if(!imgs.length) return Promise.resolve();
-
-  return Promise.all(imgs.map(img => {
-    if(img.complete && img.naturalHeight>0) return Promise.resolve();
-    return new Promise(resolve => {
-      img.addEventListener('load', resolve, { once:true });
-      img.addEventListener('error', resolve, { once:true });
-    });
-  }));
+  return new Promise(resolve => {
+    const check = () => {
+      const imgs = Array.from(document.querySelectorAll('#roulette-drum img'));
+      if(!imgs.length){ resolve(); return; }
+      const allLoaded = imgs.every(img => img.complete && img.naturalHeight > 0);
+      if(allLoaded) resolve();
+      else setTimeout(check, 20);
+    };
+    check();
+  });
 }
 
-/** Init + start roulette.js on the drum, resolve when stopped */
+/**
+ * Initialise roulette.js on the (freshly created) drum element and
+ * start the spin.  Resolves when the animation stops.
+ *
+ * Key insight: pass stopImageNumber in the INIT options so that
+ * `defaultProperty.originalStopImageNumber` is set correctly before
+ * start() reads it.  Do NOT call roulette('option', …) afterwards —
+ * option() updates `defaultProperty.originalStopImageNumber` but
+ * start() has already cached its own copy.
+ */
 function spinDrum(pool, winnerIndex) {
-  return new Promise(resolve=>{
-    const $drum=$('#roulette-drum');
-    if(!$drum.length){ resolve(false); return; }
+  return new Promise(resolve => {
+    const $drum = $('#roulette-drum');
+    if(!$drum.length){ resolve(); return; }
 
+    // Pass all settings (including stopImageNumber) to the constructor
     $drum.roulette({
-      speed:            14,
-      duration:         3,       // seconds of full spin before slowdown
-      stopImageNumber:  winnerIndex,
+      speed:           14,
+      duration:        3,
+      stopImageNumber: winnerIndex,   // ← must be here, not via option()
       startCallback:    function(){},
       slowDownCallback: function(){},
-      stopCallback:     function(){
-        resolve(true);
-      },
+      stopCallback:     function(){ resolve(); },
     });
 
     $drum.roulette('start');
