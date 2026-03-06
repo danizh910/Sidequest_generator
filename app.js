@@ -278,16 +278,16 @@ function questToSVG(q) {
  *   every single time and measures the correct imageHeight.
  */
 function buildDrum(pool) {
-  const $outer = $('.drum-outer');
-  if(!$outer.length) return false;
+  const $clip = $('.drum-clip');
+  if(!$clip.length) return false;
 
   if(!pool.length){
-    $outer.html(`<p class="drum-empty">${t().poolEmpty}</p>`);
+    $clip.html(`<p class="drum-empty" style="padding:2rem;text-align:center">${t().poolEmpty}</p>`);
     return false;
   }
 
   // Build a brand-new element — roulette.js will have zero cached state
-  const $newDrum = $('<div id="roulette-drum" style="display:none;"></div>');
+  const $newDrum = $('<div id="roulette-drum"></div>');
   pool.forEach(q => {
     $newDrum.append(
       $('<img>')
@@ -297,9 +297,9 @@ function buildDrum(pool) {
     );
   });
 
-  // Replace: remove old highlight + old drum, insert highlight + fresh drum
-  $outer.html('<div class="drum-highlight"></div>');
-  $outer.append($newDrum);
+  // Keep the highlight overlay, replace only the drum element
+  $clip.find('#roulette-drum').remove();
+  $clip.append($newDrum);
   return true;
 }
 
@@ -461,8 +461,10 @@ function viewPicker(c){
           <span>${S.spinning?tr.spinning:tr.spinBtn}</span>
         </button>
         <div class="drum-outer">
-          <div class="drum-highlight"></div>
-          <div id="roulette-drum"></div>
+          <div class="drum-clip">
+            <div class="drum-highlight"></div>
+            <div id="roulette-drum"></div>
+          </div>
         </div>
         <p class="drum-hint">${tr.drumHint(pool.length)}</p>
       </div>

@@ -30,12 +30,11 @@ body {
   color: var(--txt);
   min-height: 100dvh;
   overflow-x: hidden;
-  /* smooth dark backdrop (without tiled noise artifacts) */
+  /* subtle noise grain */
   background-image:
-    radial-gradient(ellipse 70vw 50vh at 15% 0%, rgba(200,255,87,.055) 0%, transparent 58%),
-    radial-gradient(ellipse 50vw 40vh at 90% 100%, rgba(87,255,216,.035) 0%, transparent 60%),
-    linear-gradient(180deg, #141821 0%, #13151a 60%, #111319 100%);
-  background-attachment: fixed;
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E"),
+    radial-gradient(ellipse 70vw 50vh at 15% 0%, rgba(200,255,87,.055) 0%, transparent 55%),
+    radial-gradient(ellipse 50vw 40vh at 90% 100%, rgba(87,255,216,.04) 0%, transparent 55%);
 }
 
 /* ─── LAYOUT ─── */
@@ -366,33 +365,55 @@ textarea { min-height: 90px; resize: vertical; }
 }
 
 /* ── DRUM WRAPPER ── */
+/*
+ * DRUM LAYOUT
+ *
+ * roulette.js overrides the height of the element it's initialised on
+ * (sets it to imageHeight = one row = 88px).  So we cannot give
+ * #roulette-drum the full 264px — roulette.js will shrink it.
+ *
+ * Solution: use a fixed-height CLIP wrapper (.drum-clip, 264px) that
+ * hides overflow, and let roulette.js control #roulette-drum freely
+ * inside it.  The decorative outer wrapper (.drum-outer) just provides
+ * positioning context for the overlay layers.
+ */
+
 .drum-outer {
   width: 100%;
-  max-width: 480px;
+  max-width: 520px;
   position: relative;
 }
 
-/* top/bottom fade */
-.drum-outer::before,
-.drum-outer::after {
+/* fixed-height clip window — 3 rows × 88 px */
+.drum-clip {
+  height: 264px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface2);
+  position: relative;
+}
+
+/* top/bottom fade overlays sit INSIDE the clip */
+.drum-clip::before,
+.drum-clip::after {
   content: '';
   position: absolute;
   left: 0; right: 0;
-  height: 56px;
-  z-index: 3;
+  height: 72px;
+  z-index: 4;
   pointer-events: none;
-  border-radius: 12px;
 }
-.drum-outer::before {
+.drum-clip::before {
   top: 0;
-  background: linear-gradient(to bottom, var(--surface), transparent);
+  background: linear-gradient(to bottom, var(--surface2) 0%, transparent 100%);
 }
-.drum-outer::after {
+.drum-clip::after {
   bottom: 0;
-  background: linear-gradient(to top, var(--surface), transparent);
+  background: linear-gradient(to top, var(--surface2) 0%, transparent 100%);
 }
 
-/* lime highlight band for the center item */
+/* lime highlight band — center row */
 .drum-highlight {
   position: absolute;
   left: 0; right: 0;
@@ -401,29 +422,31 @@ textarea { min-height: 90px; resize: vertical; }
   height: 88px;
   border-top: 1px solid var(--lime);
   border-bottom: 1px solid var(--lime);
-  background: rgba(200,255,87,.03);
-  border-radius: 4px;
-  z-index: 2;
+  background: rgba(200,255,87,.04);
+  z-index: 3;
   pointer-events: none;
 }
 
-/* roulette.js container — clips the scroll */
+/*
+ * roulette.js target — do NOT set height here.
+ * The plugin sets height = imageHeight (88px) and manages its own
+ * internal scrolling div.  overflow:hidden is set by the plugin too.
+ */
 #roulette-drum {
-  overflow: hidden !important;
-  height: 264px;            /* exactly 3 items × 88px */
-  border: 1px solid var(--border);
-  border-radius: 12px;
+  width: 100%;
   background: var(--surface2);
-  display: block;           /* roulette.js sets display:none then .show() */
-  position: relative;
+  /* display:none → show() is handled by roulette.js */
 }
 
-/* Each SVG image fills 100% width */
+/* Each SVG image must have an explicit pixel height so roulette.js
+   can measure it reliably via naturalHeight / offsetHeight */
 #roulette-drum img {
   display: block;
   width: 100%;
   height: 88px;
   object-fit: fill;
+  /* prevent browser from collapsing the img before load */
+  min-height: 88px;
 }
 
 .drum-hint {
@@ -617,5 +640,5 @@ tr:hover td { background: rgba(255,255,255,.015); }
 /* ─── MOBILE ─── */
 @media(max-width:440px) {
   .panel, .quest-card { padding: 1rem; border-radius: 12px; }
-  #roulette-drum { height: 264px; }
+  #roulette-drum { width: 100%; }
 }
