@@ -367,15 +367,8 @@ textarea { min-height: 90px; resize: vertical; }
 /* ── DRUM WRAPPER ── */
 /*
  * DRUM LAYOUT
- *
- * roulette.js overrides the height of the element it's initialised on
- * (sets it to imageHeight = one row = 88px).  So we cannot give
- * #roulette-drum the full 264px — roulette.js will shrink it.
- *
- * Solution: use a fixed-height CLIP wrapper (.drum-clip, 264px) that
- * hides overflow, and let roulette.js control #roulette-drum freely
- * inside it.  The decorative outer wrapper (.drum-outer) just provides
- * positioning context for the overlay layers.
+ * 3 rows visible × 96px = 288px clip height
+ * The inner .drum-strip scrolls via JS transform
  */
 
 .drum-outer {
@@ -384,9 +377,9 @@ textarea { min-height: 90px; resize: vertical; }
   position: relative;
 }
 
-/* fixed-height clip window — 3 rows × 88 px */
+/* fixed-height clip window */
 .drum-clip {
-  height: 264px;
+  height: 288px;          /* 3 × 96px */
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -394,13 +387,13 @@ textarea { min-height: 90px; resize: vertical; }
   position: relative;
 }
 
-/* top/bottom fade overlays sit INSIDE the clip */
+/* top/bottom fade overlays */
 .drum-clip::before,
 .drum-clip::after {
   content: '';
   position: absolute;
   left: 0; right: 0;
-  height: 72px;
+  height: 80px;
   z-index: 4;
   pointer-events: none;
 }
@@ -417,9 +410,8 @@ textarea { min-height: 90px; resize: vertical; }
 .drum-highlight {
   position: absolute;
   left: 0; right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  height: 88px;
+  top: 96px;              /* offset = 1 row */
+  height: 96px;
   border-top: 1px solid var(--lime);
   border-bottom: 1px solid var(--lime);
   background: rgba(200,255,87,.04);
@@ -427,26 +419,53 @@ textarea { min-height: 90px; resize: vertical; }
   pointer-events: none;
 }
 
-/*
- * roulette.js target — do NOT set height here.
- * The plugin sets height = imageHeight (88px) and manages its own
- * internal scrolling div.  overflow:hidden is set by the plugin too.
- */
-#roulette-drum {
-  width: 100%;
-  background: var(--surface2);
-  /* display:none → show() is handled by roulette.js */
+/* scrolling strip */
+.drum-strip {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  will-change: transform;
 }
 
-/* Each SVG image must have an explicit pixel height so roulette.js
-   can measure it reliably via naturalHeight / offsetHeight */
-#roulette-drum img {
-  display: block;
-  width: 100%;
-  height: 88px;
-  object-fit: fill;
-  /* prevent browser from collapsing the img before load */
-  min-height: 88px;
+/* each quest row */
+.drum-item {
+  height: 96px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 1rem 0 1.1rem;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  transition: border-color .1s;
+  box-sizing: border-box;
+}
+
+.drum-item-cat {
+  font-family: 'DM Mono', monospace;
+  font-size: .6rem;
+  letter-spacing: .12em;
+  color: var(--lime);
+  text-transform: uppercase;
+  margin-bottom: .2rem;
+}
+
+.drum-item-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: .92rem;
+  line-height: 1.25;
+  color: var(--txt);
+  /* clamp to 2 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.drum-item-dur {
+  font-family: 'DM Mono', monospace;
+  font-size: .58rem;
+  color: var(--muted);
+  margin-top: .22rem;
 }
 
 .drum-hint {
@@ -640,5 +659,5 @@ tr:hover td { background: rgba(255,255,255,.015); }
 /* ─── MOBILE ─── */
 @media(max-width:440px) {
   .panel, .quest-card { padding: 1rem; border-radius: 12px; }
-  #roulette-drum { width: 100%; }
+  .drum-clip { height: 288px; }
 }

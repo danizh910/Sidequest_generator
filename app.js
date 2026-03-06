@@ -228,128 +228,98 @@ function upsertEdit(id,payload) {
 }
 
 /* ──────────────────────────────────────────────
-   SLOT MACHINE — roulette.js integration
-   Each quest becomes an SVG "image" (480×88px)
-   roulette.js scrolls through them vertically
+   SLOT MACHINE — custom CSS/JS scroller
 ────────────────────────────────────────────── */
 
-/** Builds an SVG data-URI for one quest row (480 × 88 px) */
-function questToSVG(q) {
-  const icon  = CAT_ICONS[q.category] || '';
-  const cat   = (t().catLabels[q.category]||q.category).toUpperCase();
-  const dur   = `${q.duration_min}–${q.duration_max} MIN`;
-  const raw   = qTitle(q);
+const ITEM_H = 96; // px — must match .drum-item height in CSS
 
-  // Wrap title into two lines (max ~46 chars per line at 13px Syne)
-  const words = raw.split(' ');
-  let l1='', l2='';
-  for(const w of words){
-    if((l1+' '+w).trim().length<=44) l1=(l1+' '+w).trim();
-    else l2=(l2+' '+w).trim();
-  }
-  if(l2.length>44) l2=l2.slice(0,43)+'…';
-
-  const enc = s => s.replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
-  const svg=`<svg xmlns='http://www.w3.org/2000/svg' width='480' height='88'>
-    <rect width='480' height='88' fill='%2320232b'/>
-    <rect width='3' height='88' fill='%23c8ff57'/>
-    <text x='14' y='19' font-family='monospace' font-size='9' fill='%23c8ff57' letter-spacing='1.5'>${enc(icon+' '+cat)}</text>
-    <text x='14' y='39' font-family='Arial,sans-serif' font-size='14' font-weight='bold' fill='%23eef0f6'>${enc(l1)}</text>
-    ${l2?`<text x='14' y='56' font-family='Arial,sans-serif' font-size='14' font-weight='bold' fill='%23eef0f6'>${enc(l2)}</text>`:''}
-    <text x='14' y='78' font-family='monospace' font-size='9' fill='%236b7080'>${enc(dur)}</text>
-  </svg>`;
-  return 'data:image/svg+xml,'+svg.replace(/\n\s*/g,' ');
+/** One drum row as HTML */
+function drumItemHTML(q) {
+  const icon = CAT_ICONS[q.category] || '';
+  const cat  = t().catLabels[q.category] || q.category;
+  const dur  = `${q.duration_min}–${q.duration_max} Min`;
+  return `<div class="drum-item" data-id="${q.id}">
+    <div class="drum-item-cat">${esc(icon + ' ' + cat.toUpperCase())}</div>
+    <div class="drum-item-title">${esc(qTitle(q))}</div>
+    <div class="drum-item-dur">${esc(dur)}</div>
+  </div>`;
 }
 
-/**
- * Rebuild the drum by REPLACING the entire #roulette-drum element.
- *
- * Why replace instead of empty():
- *   roulette.js stores its state (imageHeight, totalHeight, $images, …)
- *   inside a Roulette closure that is attached via $.data().
- *   Even after removeData() the *new* Roulette instance still sets
- *   p.$images on the *first* init and caches p.imageHeight via an
- *   img.load() trick.  When the container is simply emptied the new
- *   images are appended AFTER init has already run, so the plugin
- *   never re-measures them → stopImageNumber always lands on slot 0.
- *
- *   Replacing the element gives roulette.js a completely fresh DOM
- *   node with no jQuery data attached, so init() runs from scratch
- *   every single time and measures the correct imageHeight.
- */
+/** (Re)build the drum strip with given pool */
 function buildDrum(pool) {
-  const $clip = $('.drum-clip');
-  if(!$clip.length) return false;
+  const clip = document.querySelector('.drum-clip');
+  if (!clip) return false;
 
-  if(!pool.length){
-    $clip.html(`<p class="drum-empty" style="padding:2rem;text-align:center">${t().poolEmpty}</p>`);
+  const old = clip.querySelector('.drum-strip');
+  if (old) old.remove();
+  clip.querySelector('.drum-empty') && clip.querySelector('.drum-empty').remove();
+
+  if (!pool.length) {
+    clip.insertAdjacentHTML('beforeend', `<p class="drum-empty">${t().poolEmpty}</p>`);
     return false;
   }
 
-  // Build a brand-new element — roulette.js will have zero cached state
-  const $newDrum = $('<div id="roulette-drum"></div>');
-  pool.forEach(q => {
-    $newDrum.append(
-      $('<img>')
-        .attr('src', questToSVG(q))
-        .attr('data-id', q.id)
-        .attr('alt', qTitle(q))
-    );
-  });
-
-  // Keep the highlight overlay, replace only the drum element
-  $clip.find('#roulette-drum').remove();
-  $clip.append($newDrum);
+  // Repeat pool enough times for a convincing long scroll (min 60 items total)
+  const strip = document.createElement('div');
+  strip.className = 'drum-strip';
+  const reps = Math.max(5, Math.ceil(60 / pool.length));
+  for (let r = 0; r < reps; r++) {
+    pool.forEach(q => strip.insertAdjacentHTML('beforeend', drumItemHTML(q)));
+  }
+  clip.appendChild(strip);
   return true;
 }
 
 /**
- * Wait until every img inside the drum has loaded (naturalHeight > 0).
- * roulette.js measures imageHeight from the first img — if it hasn't
- * loaded yet the plugin sets imageHeight = 0 and the drum never scrolls.
- */
-function waitForDrumImages() {
-  return new Promise(resolve => {
-    const check = () => {
-      const imgs = Array.from(document.querySelectorAll('#roulette-drum img'));
-      if(!imgs.length){ resolve(); return; }
-      const allLoaded = imgs.every(img => img.complete && img.naturalHeight > 0);
-      if(allLoaded) resolve();
-      else setTimeout(check, 20);
-    };
-    check();
-  });
-}
-
-/**
- * Initialise roulette.js on the (freshly created) drum element and
- * start the spin.  Resolves when the animation stops.
+ * Animate the drum, stopping so winnerIndex (in original pool)
+ * is centered in the middle slot.
  *
- * Key insight: pass stopImageNumber in the INIT options so that
- * `defaultProperty.originalStopImageNumber` is set correctly before
- * start() reads it.  Do NOT call roulette('option', …) afterwards —
- * option() updates `defaultProperty.originalStopImageNumber` but
- * start() has already cached its own copy.
+ * The strip = pool × reps items.
+ * We scroll from the top to near the END of the strip, landing
+ * so that the winner of the LAST repetition sits in the center slot.
  */
 function spinDrum(pool, winnerIndex) {
   return new Promise(resolve => {
-    const $drum = $('#roulette-drum');
-    if(!$drum.length){ resolve(); return; }
+    const clip  = document.querySelector('.drum-clip');
+    const strip = clip && clip.querySelector('.drum-strip');
+    if (!strip) { resolve(); return; }
 
-    // Pass all settings (including stopImageNumber) to the constructor
-    $drum.roulette({
-      speed:           14,
-      duration:        3,
-      stopImageNumber: winnerIndex,   // ← must be here, not via option()
-      startCallback:    function(){},
-      slowDownCallback: function(){},
-      stopCallback:     function(){ resolve(); },
-    });
+    const reps    = Math.round(strip.children.length / pool.length);
+    const oneLoop = pool.length * ITEM_H;
 
-    $drum.roulette('start');
+    // The center slot is ITEM_H px from the top of the clip
+    // (first visible row is at 0, second/center at ITEM_H)
+    const middleOffset = ITEM_H;
+
+    // Target: winner in the second-to-last rep (leaves a bit of buffer)
+    const targetRep = reps - 2;
+    const targetY   = targetRep * oneLoop + winnerIndex * ITEM_H - middleOffset;
+
+    const DURATION = 3400; // ms
+    const startTime = performance.now();
+
+    function easeOutQuart(x) { return 1 - Math.pow(1 - x, 4); }
+
+    strip.style.transition = 'none';
+    strip.style.transform  = 'translateY(0)';
+
+    function frame(now) {
+      const elapsed  = now - startTime;
+      const progress = Math.min(elapsed / DURATION, 1);
+      const eased    = easeOutQuart(progress);
+      const y        = targetY * eased;
+      strip.style.transform = `translateY(-${y}px)`;
+      if (progress < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        strip.style.transform = `translateY(-${targetY}px)`;
+        resolve();
+      }
+    }
+
+    requestAnimationFrame(frame);
   });
 }
-
 /* ──────────────────────────────────────────────
    RENDER HELPERS
 ────────────────────────────────────────────── */
@@ -463,7 +433,6 @@ function viewPicker(c){
         <div class="drum-outer">
           <div class="drum-clip">
             <div class="drum-highlight"></div>
-            <div id="roulette-drum"></div>
           </div>
         </div>
         <p class="drum-hint">${tr.drumHint(pool.length)}</p>
@@ -735,14 +704,13 @@ function attachEvents(c){
     const ok=buildDrum(pool);
     if(!ok){S.spinning=false;render();return;}
 
-    // Wait until SVG rows are loaded, then init plugin
+    // Small delay so DOM paints the drum strip before animation starts
     setTimeout(async()=>{
-      await waitForDrumImages();
       await spinDrum(pool,winnerIndex);
       S.winId = winner.id;
       S.spinning=false;
       render();
-    },60);
+    },30);
   });
 
   /* Done / Skip */
