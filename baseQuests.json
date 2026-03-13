@@ -424,7 +424,7 @@
   },
   {
     "id": "base-15",
-    "title": "Ask an elderly person about their biggest regret and listen without your phone",
+    "title": "Ask an older person (with consent) about a regret they learned from, and listen without your phone",
     "description": "Social & Human Connection challenge.",
     "category": "social",
     "tags": [
@@ -445,9 +445,9 @@
       "weather_required": "none"
     },
     "instructions": [
-      "Ask with empathy and respect.",
-      "Keep your phone away completely.",
-      "Write down one lesson afterwards."
+      "Ask only if they are open to sharing.",
+      "Listen with empathy and keep your phone away.",
+      "Write down one life lesson afterwards."
     ],
     "created_at": "2026-01-15T10:00:00.000Z",
     "source": "base"
