@@ -18,6 +18,8 @@ const LANG = {
     group: 'Gruppe',
     levelMin: 'Level ≥',
     includeDone: 'Erledigte einschliessen',
+    legality: 'Legalität',
+    legalityOpts: { any:'Alle', legal:'Nur legal', illegal:'Nur illegal' },
     spinBtn: 'Spin',
     spinning: 'Dreht…',
     poolCount: n => `${n} Quest${n!==1?'s':''} im Pool`,
@@ -41,6 +43,7 @@ const LANG = {
     fGroup: 'Gruppe', fLevel: 'Adventure Level (1–5)', fBudget: 'Budget CHF',
     fEquip: 'Ausrüstung (Komma)', fWeather: 'Wetter', fSteps: 'Schritte (eine pro Zeile)',
     fStepsPh: 'Schritt 1\nSchritt 2\nSchritt 3',
+    fLegality: 'Ist diese Quest illegal?',
     saveQuestBtn: 'Speichern', cancelBtn: 'Abbrechen',
     histTitle: 'Verlauf', histAll: 'Alle', histDone: 'Erledigt', histSkip: 'Übersprungen',
     colDate: 'Datum',
@@ -72,6 +75,8 @@ const LANG = {
     group: 'Group',
     levelMin: 'Level ≥',
     includeDone: 'Include completed',
+    legality: 'Legality',
+    legalityOpts: { any:'All', legal:'Legal only', illegal:'Illegal only' },
     spinBtn: 'Spin',
     spinning: 'Spinning…',
     poolCount: n => `${n} quest${n!==1?'s':''} in pool`,
@@ -95,6 +100,7 @@ const LANG = {
     fGroup: 'Group mode', fLevel: 'Adventure Level (1–5)', fBudget: 'Budget CHF',
     fEquip: 'Equipment (comma)', fWeather: 'Weather required', fSteps: 'Steps (one per line)',
     fStepsPh: 'Step 1\nStep 2\nStep 3',
+    fLegality: 'Is this quest illegal?',
     saveQuestBtn: 'Save Quest', cancelBtn: 'Cancel',
     histTitle: 'History', histAll: 'All', histDone: 'Done', histSkip: 'Skipped',
     colDate: 'Date',
@@ -125,7 +131,7 @@ const BASE_QUESTS = [
   { id:'base-2',  title_de:'Unter den Sternen schlafen, an einem Ort den du noch nie warst',              title_en:'Sleep under the stars somewhere you\'ve never been',                          category:'outdoor',    tags:['nacht','natur','mutig'],             duration_min:360, duration_max:720,  setting:'outdoor', group_mode:'both',  adventure_level:4, equipment:['Schlafsack'],              constraints:{budget_max_chf:80,weather_required:'dry'},   instructions_de:['Legalen und sicheren Outdoor-Spot finden.','Nur das Nötigste einpacken.','15 Minuten den Himmel anschauen — ohne Handy.'], instructions_en:['Find a legal and safe outdoor spot.','Pack only essentials for one night.','Watch the sky for 15 minutes without your phone.'], source:'base' },
   { id:'base-3',  title_de:'Eine Stadt mit weniger als 500 Einwohnern besuchen',                          title_en:'Visit a town with a population under 500',                                    category:'travel',     tags:['roadtrip','kleinstadt','neugierig'], duration_min:180, duration_max:480,  setting:'outdoor', group_mode:'both',  adventure_level:3, equipment:['Handy'],                   constraints:{budget_max_chf:50,weather_required:'any'},   instructions_de:['Kleine Stadt in der Nähe auswählen.','Mit einer einheimischen Person reden.','Aufschreiben was anders war als in der eigenen Stadt.'], instructions_en:['Pick a tiny town nearby.','Talk to one local person.','Write down what felt different from your city.'], source:'base' },
   { id:'base-4',  title_de:'Alleine in einem schicken Restaurant essen und jeden Moment geniessen',       title_en:'Eat alone at a fancy restaurant and enjoy every second of it',                category:'food',       tags:['komfortzone','selbstvertrauen','essen'], duration_min:90, duration_max:180, setting:'indoor',  group_mode:'solo',  adventure_level:3, equipment:['Portemonnaie'],            constraints:{budget_max_chf:120,weather_required:'none'}, instructions_de:['Tisch für eine Person reservieren.','Langsam bestellen, im Moment bleiben.','Nachher eine Sache aufschreiben die man über sich gelernt hat.'], instructions_en:['Book a table for one.','Order slowly and stay present.','End the night by writing one thing you learned about yourself.'], source:'base' },
-  { id:'base-5',  title_de:'In ein Flugzeug steigen — nur Handgepäck, kein Hotel gebucht',               title_en:'Get on a flight with only a carry-on and no hotel booked',                    category:'travel',     tags:['risiko','spontan','minimalistisch'],  duration_min:720, duration_max:2880, setting:'both',    group_mode:'solo',  adventure_level:5, equipment:['Pass','Handgepäck'],       constraints:{budget_max_chf:600,weather_required:'any'},  instructions_de:['Ziel mit einfacher Ankunft wählen.','Nur die erste Nacht grob planen.','Tag 1 von Einheimischen leiten lassen.'], instructions_en:['Choose a destination with easy arrival options.','Plan only first-night safety basics.','Let day one be guided by local recommendations.'], source:'base' },
+  { id:'base-5',  title_de:'In ein Flugzeug steigen — nur Handgepäck und legal mit erster Nacht geplant',               title_en:'Take a flight with only a carry-on and a legally planned first night',                    category:'travel',     tags:['risiko','spontan','minimalistisch'],  duration_min:720, duration_max:2880, setting:'both',    group_mode:'solo',  adventure_level:5, equipment:['Pass','Handgepäck'],       constraints:{budget_max_chf:600,weather_required:'any'},  instructions_de:['Ziel mit einfacher und legaler Ankunft wählen.','Die erste Nacht (Hotel/Hostel) fix buchen.','Tag 1 von Einheimischen Empfehlungen leiten lassen.'], instructions_en:['Choose a destination with easy and legal arrival options.','Book your first night (hotel/hostel) in advance.','Let day one be guided by local recommendations.'], is_illegal:false, source:'base' },
   { id:'base-6',  title_de:'Den höchsten Punkt der Stadt finden und den Sonnenuntergang beobachten',      title_en:'Find the highest point in your city and watch the sunset from there',          category:'outdoor',    tags:['sonnenuntergang','stadt','reflexion'], duration_min:60, duration_max:150, setting:'outdoor', group_mode:'both',  adventure_level:2, equipment:['Bequeme Schuhe'],          constraints:{budget_max_chf:0,weather_required:'dry'},    instructions_de:['Höchsten zugänglichen Punkt lokalisieren.','20 Minuten vor Sonnenuntergang ankommen.','In Stille warten bis das letzte Licht verblasst.'], instructions_en:['Locate the highest accessible point.','Arrive 20 minutes before sunset.','Watch in silence until the last light fades.'], source:'base' },
   { id:'base-7',  title_de:'Ein Museum betreten das du noch nie beachtet hast',                           title_en:'Walk into a museum you\'ve never noticed before',                             category:'creativity', tags:['kultur','museum','neugierig'],        duration_min:60,  duration_max:180,  setting:'indoor',  group_mode:'both',  adventure_level:2, equipment:['Ticket'],                  constraints:{budget_max_chf:25,weather_required:'none'},  instructions_de:['Ein ignoriertes Museum auswählen.','Mindestens 30 Min auf einem Stockwerk verbringen.','Ein Werk notieren das bleibt.'], instructions_en:['Choose a museum you have ignored.','Spend at least 30 minutes on one floor.','Take one note about a piece that stayed with you.'], source:'base' },
   { id:'base-8',  title_de:'Einen ganzen Tag in einem Quartier verbringen das du immer übersiehst',       title_en:'Spend a full day in a neighborhood you always drive past',                     category:'travel',     tags:['lokal','tieftauchen','urban'],        duration_min:300, duration_max:720,  setting:'both',    group_mode:'both',  adventure_level:3, equipment:['Handy'],                   constraints:{budget_max_chf:40,weather_required:'any'},   instructions_de:['Ein Quartier wählen und den ganzen Tag dort bleiben.','Ein Café, einen Spaziergang, ein zufälliges Geschäft ausprobieren.','Mit einem Mini-Guide für Freunde nach Hause gehen.'], instructions_en:['Pick one neighborhood and stay there all day.','Try one café, one walk, and one random shop.','Leave with a mini-guide for a friend.'], source:'base' },
@@ -200,6 +206,9 @@ const BASE_QUESTS = [
   { id:'base-75', title_de:'In eine Buchhandlung gehen und ein Buch rein intuitiv auswählen', title_en:'Visit a bookstore and pick a book intuitively', category:'creativity', tags:['solo','creative','low_budget'], duration_min:30, duration_max:75, setting:'indoor', group_mode:'solo', adventure_level:1, equipment:['nichts'], constraints:{budget_max_chf:30,weather_required:'none'}, instructions_de:['Ohne Rezensionen oder Ratings ein Regal wählen.','Nimm das Buch, das dich spontan anspricht.','Lies vor Ort die ersten fünf Seiten oder nimm es als Nächstes mit.'], instructions_en:['Choose a shelf without checking ratings or reviews.','Pick the book that grabs you immediately.','Read the first five pages there or take it as your next read.'], source:'base' },
   { id:'base-76', title_de:'Mache etwas, worin du schlecht bist, ohne es zu dokumentieren', title_en:'Do something you are bad at without documenting it', category:'mindset', tags:['solo','challenge','bold'], duration_min:45, duration_max:120, setting:'both', group_mode:'solo', adventure_level:3, equipment:['nichts'], constraints:{budget_max_chf:50,weather_required:'any'}, instructions_de:['Wähle eine Aktivität, bei der du Anfänger bist.','Bleib mindestens 45 Minuten dran, ohne Fotos oder Posts.','Notiere danach nur für dich, was du gelernt hast.'], instructions_en:['Choose an activity where you are clearly a beginner.','Stay with it for at least 45 minutes with no photos or posts.','Capture only a private note about what you learned.'], source:'base' },
 
+  { id:'base-77', title_de:'Nimm an einer öffentlichen Gemeinderatssitzung teil und mache dir Notizen', title_en:'Attend a public city council meeting and take notes', category:'social', tags:['community','civic','learning'], duration_min:60, duration_max:120, setting:'indoor', group_mode:'solo', adventure_level:2, equipment:['Notizbuch'], constraints:{budget_max_chf:0,weather_required:'none'}, instructions_de:['Prüfe online die nächste öffentliche Sitzung in deiner Stadt.','Höre mindestens 30 Minuten aktiv zu.','Notiere drei Themen, die dich betreffen könnten.'], instructions_en:['Check online for the next public meeting in your city.','Listen actively for at least 30 minutes.','Write down three topics that could affect your life.'], is_illegal:false, source:'base' },
+  { id:'base-78', title_de:'Mache eine legale Street-Fototour mit Fokus auf Licht und Schatten', title_en:'Do a legal street photo walk focused on light and shadow', category:'creativity', tags:['photo','city','creative'], duration_min:45, duration_max:120, setting:'outdoor', group_mode:'solo', adventure_level:2, equipment:['Handy oder Kamera'], constraints:{budget_max_chf:0,weather_required:'any'}, instructions_de:['Wähle eine Route mit öffentlichen Wegen.','Fotografiere nur dort, wo es erlaubt ist und respektiere Privatsphäre.','Wähle am Ende dein bestes Bild und schreibe einen Titel dazu.'], instructions_en:['Choose a route on public paths.','Take photos only where allowed and respect privacy.','Pick your best image at the end and give it a title.'], is_illegal:false, source:'base' },
+  { id:'base-79', title_de:'Plane eine Mikroreise komplett legal mit Budgetlimit von 50 CHF', title_en:'Plan a fully legal micro-trip with a 50 CHF budget cap', category:'travel', tags:['planning','budget','smart'], duration_min:30, duration_max:90, setting:'indoor', group_mode:'solo', adventure_level:1, equipment:['Handy'], constraints:{budget_max_chf:50,weather_required:'none'}, instructions_de:['Wähle ein Ziel, das ohne Regelverstösse erreichbar ist.','Prüfe Tickets, Öffnungszeiten und erlaubte Aktivitäten.','Erstelle einen Tagesplan mit maximal 50 CHF Gesamtkosten.'], instructions_en:['Choose a destination reachable without breaking rules.','Check tickets, opening hours, and allowed activities.','Create a day plan with total costs capped at 50 CHF.'], is_illegal:false, source:'base' },
 
 ];
 
@@ -237,7 +246,7 @@ const S = {
   editId:    null,
   winId:     null,
   spinning:  false,
-  filters:   { cats:[], dur:'any', setting:'any', group:'any', lvl:1, done:true },
+  filters:   { cats:[], dur:'any', setting:'any', group:'any', lvl:1, done:true, legality:'any' },
   search:    '',
   histFilter:'all',
 };
@@ -270,6 +279,8 @@ function filterQuests(qs,f,dset) {
     if(f.group!=='any'   && q.group_mode!=='both' && q.group_mode!==f.group)     return false;
     if(q.adventure_level<f.lvl)                                                  return false;
     if(!f.done && dset.has(q.id))                                                return false;
+    if(f.legality==='illegal' && !q.is_illegal)                                   return false;
+    if(f.legality==='legal' && q.is_illegal)                                      return false;
     return true;
   });
 }
@@ -430,6 +441,11 @@ function renderFilters(c){
       </label>
       <label class="lbl-inline">${tr.includeDone}
         <label class="toggle"><input type="checkbox" data-filter="done"${S.filters.done?' checked':''}><span class="tslider"></span></label>
+      </label>
+      <label>${tr.legality}
+        <select data-filter="legality">
+          ${['any','legal','illegal'].map(v=>`<option value="${v}"${S.filters.legality===v?' selected':''}>${tr.legalityOpts[v]}</option>`).join('')}
+        </select>
       </label>
     </div>
   </div>`;
@@ -613,6 +629,9 @@ function viewCreate(c){
         </label>
         <label class="col-full">${tr.fWeather}
           <select name="weather_required">${['none','dry','any'].map(v=>`<option${q?.constraints?.weather_required===v?' selected':''}>${v}</option>`).join('')}</select>
+        </label>
+        <label class="col-full">${tr.fLegality}
+          <label class="toggle"><input type="checkbox" name="is_illegal"${q?.is_illegal?' checked':''}><span class="tslider"></span></label>
         </label>
         <label class="col-full">${tr.fSteps} (DE)
           <textarea name="instructions_de" placeholder="${tr.fStepsPh}">${esc((q?.instructions_de||[]).join('\n'))}</textarea>
@@ -844,7 +863,7 @@ function attachEvents(c){
   document.querySelectorAll('[data-action="reset-storage"]').forEach(b=>b.addEventListener('click',()=>{
     if(!confirm(t().confirmReset))return;
     Object.values(SK).forEach(k=>localStorage.removeItem(k));
-    S.filters={cats:[],dur:'any',setting:'any',group:'any',lvl:1,done:true};
+    S.filters={cats:[],dur:'any',setting:'any',group:'any',lvl:1,done:true,legality:'any'};
     S.winId=null; S.spinning=false;
     render();
   }));
@@ -889,6 +908,7 @@ function attachEvents(c){
         budget_max_chf: fd.get('budget_max_chf')?Number(fd.get('budget_max_chf')):undefined,
         weather_required: fd.get('weather_required')||'none',
       },
+      is_illegal: fd.get('is_illegal')==='on',
       instructions_de: instrDe,
       instructions_en: instrEn.length?instrEn:instrDe,
     };
