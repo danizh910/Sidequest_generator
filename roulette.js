@@ -32,7 +32,7 @@
 			distance : 0,
 			runUpDistance : null,
 			slowdownTimer : null,
-			isIE : (typeof navigator !== 'undefined' ? navigator.userAgent.toLowerCase().indexOf('msie') > -1 : false) // TODO IE
+			isIE : navigator.userAgent.toLowerCase().indexOf('msie') > -1 // TODO IE
 		};
 		var p = $.extend({}, defaultSettings, options, defaultProperty);
 

@@ -221,25 +221,8 @@ const CATS = ['outdoor','creativity','social','mindset','fitness','food','travel
 const CAT_ICONS = { outdoor:'🌲', creativity:'🎨', social:'🤝', mindset:'🧠', fitness:'⚡', food:'🍽', travel:'✈️' };
 const DURATIONS  = { any:null, '5-10':[5,10], '10-20':[10,20], '20-45':[20,45], '45-90':[45,90], '90+':[90,Infinity] };
 
-const IS_BROWSER = typeof window !== 'undefined' && typeof document !== 'undefined';
-
-const storage = {
-  getItem(key){
-    if (!IS_BROWSER || !window.localStorage) return null;
-    return window.localStorage.getItem(key);
-  },
-  setItem(key, value){
-    if (!IS_BROWSER || !window.localStorage) return;
-    window.localStorage.setItem(key, value);
-  },
-  removeItem(key){
-    if (!IS_BROWSER || !window.localStorage) return;
-    window.localStorage.removeItem(key);
-  }
-};
-
-const lj = (k,fb) => { try { const r=storage.getItem(k); return r?JSON.parse(r):fb; } catch { return fb; } };
-const sj = (k,v)  => storage.setItem(k,JSON.stringify(v));
+const lj = (k,fb) => { try { const r=localStorage.getItem(k); return r?JSON.parse(r):fb; } catch { return fb; } };
+const sj = (k,v)  => localStorage.setItem(k,JSON.stringify(v));
 const iso= ()     => new Date().toISOString();
 const esc= (s='') => String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
 const parseList = v => v.split(',').map(x=>x.trim()).filter(Boolean);
@@ -333,7 +316,6 @@ function drumItemHTML(q) {
 
 /** (Re)build the drum strip with given pool */
 function buildDrum(pool) {
-  if (!IS_BROWSER) return false;
   const clip = document.querySelector('.drum-clip');
   if (!clip) return false;
 
@@ -367,7 +349,6 @@ function buildDrum(pool) {
  */
 function spinDrum(pool, winnerIndex) {
   return new Promise(resolve => {
-    if (!IS_BROWSER) { resolve(); return; }
     const clip  = document.querySelector('.drum-clip');
     const strip = clip && clip.querySelector('.drum-strip');
     if (!strip) { resolve(); return; }
@@ -410,7 +391,6 @@ function spinDrum(pool, winnerIndex) {
 }
 /** Instantly position drum so winnerIndex is centered — no animation */
 function snapDrum(pool, winnerIndex) {
-  if (!IS_BROWSER) return;
   const clip  = document.querySelector('.drum-clip');
   const strip = clip && clip.querySelector('.drum-strip');
   if (!strip) return;
@@ -744,9 +724,7 @@ function viewSettings(c){
    MAIN RENDER
 ────────────────────────────────────────────── */
 function render(){
-  if (!IS_BROWSER) return;
   const app=document.getElementById('app');
-  if (!app) return;
   const c=buildCtx();
   let html='';
   if     (S.tab==='roulette')  html=viewPicker(c);
@@ -774,7 +752,6 @@ function render(){
    EVENTS
 ────────────────────────────────────────────── */
 function attachEvents(c){
-  if (!IS_BROWSER) return;
 
   /* Lang toggle */
   document.querySelectorAll('[data-action="lang"]').forEach(b=>b.addEventListener('click',()=>{
@@ -885,7 +862,7 @@ function attachEvents(c){
   /* Reset */
   document.querySelectorAll('[data-action="reset-storage"]').forEach(b=>b.addEventListener('click',()=>{
     if(!confirm(t().confirmReset))return;
-    Object.values(SK).forEach(k=>storage.removeItem(k));
+    Object.values(SK).forEach(k=>localStorage.removeItem(k));
     S.filters={cats:[],dur:'any',setting:'any',group:'any',lvl:1,done:true,legality:'any'};
     S.winId=null; S.spinning=false;
     render();
@@ -903,10 +880,7 @@ function attachEvents(c){
   document.getElementById('quest-form')?.addEventListener('submit',e=>{
     e.preventDefault();
     const fd=new FormData(e.target);
-    const randomId = IS_BROWSER && window.crypto?.randomUUID
-      ? window.crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-    const id=String(fd.get('id')||'').trim()||`custom-${randomId}`;
+    const id=String(fd.get('id')||'').trim()||`custom-${crypto.randomUUID()}`;
     const titleDe=String(fd.get('title_de')||'').trim();
     const titleEn=String(fd.get('title_en')||'').trim();
     const instrDe=String(fd.get('instructions_de')||'').split('\n').map(s=>s.trim()).filter(Boolean);
@@ -952,10 +926,4 @@ function attachEvents(c){
 }
 
 /* ── BOOT ── */
-if (IS_BROWSER) {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', render, { once: true });
-  } else {
-    render();
-  }
-}
+render();
